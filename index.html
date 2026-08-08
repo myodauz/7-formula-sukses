@@ -94,8 +94,6 @@ body{
 .btn-sm{padding:8px 12px;font-size:12.5px;}
 .btn-danger{background:transparent;color:var(--wine);border:1.5px solid var(--wine);}
 .btn-danger:hover{background:var(--wine);color:#fff;}
-.btn-teal{background:var(--teal);color:#fff;}
-.btn-teal:hover{background:var(--teal-deep);}
 
 /* ---------- Dashboard grid ---------- */
 .goal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
@@ -170,12 +168,49 @@ body{
   display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;
 }
 .icon-choice.active{border-color:var(--gold-deep);background:var(--bg-card-alt);}
-.checkbox-row{display:flex;align-items:center;gap:9px;}
-.checkbox-row input{width:16px;height:16px;}
-.checkbox-row label{margin:0;font-size:13px;font-weight:600;color:var(--text-primary);}
-.help-box{background:var(--bg-card-alt);border-radius:9px;padding:14px 16px;font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;}
-.help-box b{color:var(--text-primary);}
-.help-box code{background:var(--bg-page);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.dim-picker{display:flex;flex-wrap:wrap;gap:8px;}
+.dim-choice{
+  display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:9px;border:1.5px solid var(--border);
+  background:var(--bg-page);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--text-primary);
+}
+.dim-choice-icon{font-size:16px;}
+.dim-choice:hover{border-color:var(--chip-color);}
+.dim-choice.active{border-color:var(--chip-color);color:var(--chip-color);background:var(--bg-card-alt);}
+/* hub page: 8 dimensi kesejahteraan */
+.hub-intro{margin-bottom:22px;}
+.hub-intro h2{margin:0 0 6px;font-size:20px;color:var(--text-primary);font-weight:800;}
+.hub-intro p{margin:0;font-size:13.5px;color:var(--text-secondary);max-width:560px;}
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
+.hub-card{
+  background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);
+  border:1px solid var(--border);border-top:4px solid var(--gold);
+  padding:20px 18px;cursor:pointer;text-align:center;
+  transition: transform .15s ease;
+}
+.hub-card:hover{transform:translateY(-2px);}
+.hub-card-icon{width:52px;height:52px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.hub-card-title{font-weight:800;font-size:14px;color:var(--text-primary);margin-bottom:8px;min-height:34px;display:flex;align-items:center;justify-content:center;}
+.hub-card-count{font-size:11.5px;color:var(--text-secondary);font-weight:600;margin-bottom:8px;}
+.hub-card-pct{font-size:11px;color:var(--text-secondary);margin-top:6px;font-family:'JetBrains Mono',monospace;}
+.hub-card-empty{font-size:11.5px;color:var(--text-secondary);font-style:italic;padding-top:2px;}
+
+/* dimension page header */
+.dim-page-head{display:flex;align-items:center;gap:14px;margin-bottom:22px;padding-bottom:14px;border-bottom:2px solid var(--dim-color, var(--border));}
+.dim-page-icon{width:46px;height:46px;border-radius:12px;background:var(--dim-color, var(--bg-card-alt));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.dim-page-title{font-weight:800;font-size:18px;color:var(--text-primary);}
+.dim-page-sub{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+
+.type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.type-btn{
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;
+  padding:12px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-page);
+  cursor:pointer;font-family:'Montserrat',sans-serif;
+}
+.type-btn:hover{border-color:var(--gold-deep);}
+.type-btn.active{border-color:var(--gold-deep);background:var(--bg-card-alt);}
+.type-btn-title{font-weight:800;font-size:13px;color:var(--text-primary);}
+.type-btn-sub{font-size:10.5px;color:var(--text-secondary);line-height:1.4;}
+@media (max-width:640px){ .type-toggle{grid-template-columns:1fr;} }
 
 /* ---------- Detail view ---------- */
 .detail-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
@@ -313,12 +348,25 @@ const ICONS = ['💻','🕋','💰','📚','🏠','💪','🚗','✈️','🎓',
 const UNITS = ['Rp','kg','halaman','buku','jam','kali','langkah','custom'];
 const MONTH_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
+const DIMENSIONS = [
+  { id:'fisikal',     label:'Fisikal',            icon:'💪', color:'#4C7B72', colorDark:'#5FA096' },
+  { id:'mental',      label:'Mental & Emosional',  icon:'🧘', color:'#5C7AA6', colorDark:'#7FA0D6' },
+  { id:'sosial',      label:'Sosial',              icon:'🤝', color:'#A85C6B', colorDark:'#C97F8D' },
+  { id:'intelektual', label:'Intelektual',         icon:'📚', color:'#8A7A3D', colorDark:'#B8A458' },
+  { id:'karir',       label:'Pekerjaan / Karier',  icon:'💼', color:'#2C4B78', colorDark:'#5678AA' },
+  { id:'lingkungan',  label:'Lingkungan',          icon:'🌱', color:'#5E7C4A', colorDark:'#82A768' },
+  { id:'finansial',   label:'Finansial',           icon:'💰', color:'#A67C2E', colorDark:'#E3B85C' },
+  { id:'spiritual',   label:'Spiritual',           icon:'🕌', color:'#7A4B6E', colorDark:'#A6749B' },
+  { id:'lainnya',     label:'Lainnya',             icon:'🎯', color:'#5B5F6B', colorDark:'#9BA6BF' }
+];
+function getDimension(id){ return DIMENSIONS.find(d=>d.id===id) || DIMENSIONS[DIMENSIONS.length-1]; }
+function dimColor(dim){ return state.theme==='dark' ? dim.colorDark : dim.color; }
+
 let state = {
-  goals: [], view: 'dashboard', activeGoalId: null, detailTab: 'ringkasan', modal: null, editingGoal: null,
-  theme: 'light',
-  settings: { botToken:'', chatId:'', reminderTime:'07:00', enabled:false, lastSentDate:null }
+  goals: [], view: 'hub', activeGoalId: null, activeDimension: null, detailTab: 'ringkasan', modal: null, editingGoal: null,
+  theme: 'light', presetDimension: null
 };
-let saveGoalsTimer = null, saveSettingsTimer = null, reminderInterval = null;
+let saveGoalsTimer = null;
 
 /* ---------------- storage (works inside claude.ai artifacts AND as a standalone downloaded file) ---------------- */
 async function storageGet(key){
@@ -346,16 +394,11 @@ async function loadAll(){
     if(gv) state.goals = JSON.parse(gv);
   }catch(e){ state.goals = []; }
   try{
-    const sv = await storageGet('formulaSukses_settings');
-    if(sv) state.settings = Object.assign(state.settings, JSON.parse(sv));
-  }catch(e){ /* keep defaults */ }
-  try{
     const tv = await storageGet('formulaSukses_theme');
     if(tv) state.theme = tv;
   }catch(e){ /* keep default */ }
   document.documentElement.setAttribute('data-theme', state.theme);
   render();
-  startReminderClock();
 }
 function saveGoals(){
   clearTimeout(saveGoalsTimer);
@@ -363,13 +406,6 @@ function saveGoals(){
     const ok = await storageSet('formulaSukses_goals', JSON.stringify(state.goals));
     if(!ok) showToast('Gagal menyimpan data');
   }, 250);
-}
-function saveSettings(){
-  clearTimeout(saveSettingsTimer);
-  saveSettingsTimer = setTimeout(async ()=>{
-    const ok = await storageSet('formulaSukses_settings', JSON.stringify(state.settings));
-    if(!ok) showToast('Gagal menyimpan pengaturan');
-  }, 200);
 }
 async function saveTheme(){
   await storageSet('formulaSukses_theme', state.theme);
@@ -432,14 +468,15 @@ function displayIDNumber(n){
   return Number.isInteger(n) ? n.toLocaleString('id-ID') : n.toLocaleString('id-ID',{maximumFractionDigits:2});
 }
 
-function buildDefaultMonths(currentValue, targetValue, durationMonths){
+function buildDefaultMonths(currentValue, targetValue, durationMonths, goalType, dailyTarget){
   durationMonths = Math.max(1, parseInt(durationMonths)||12);
+  const isRutin = goalType === 'rutin';
   const remaining = Math.max(targetValue - currentValue, 0);
-  const perMonth = remaining/durationMonths;
+  const perMonth = isRutin ? (dailyTarget*28) : (remaining/durationMonths);
   const months = [];
   for(let m=0;m<durationMonths;m++){
     const weeks = [];
-    const perWeek = perMonth/4;
+    const perWeek = isRutin ? (dailyTarget*7) : (perMonth/4);
     for(let w=0;w<4;w++){
       const days = [];
       for(let d=0;d<7;d++){ days.push({ checked:false, actual:null }); }
@@ -499,6 +536,11 @@ function goalProgress(goal){
   const pct = goal.targetValue>0 ? Math.min(100, Math.round((achieved/goal.targetValue)*100)) : 0;
   return { achieved, pct };
 }
+function countCheckedDays(g){
+  let c=0; g.months.forEach(m=>m.weeks.forEach(w=>w.days.forEach(d=>{ if(d.checked) c++; })));
+  return c;
+}
+function totalPlanDays(g){ return g.months.length*28; }
 
 /* today-cell mapping: approximate 28-day months (4 weeks x 7 days), consistent with the plan's own structure */
 function getTodayCell(goal){
@@ -520,14 +562,27 @@ function getGoal(id){ return state.goals.find(g=>g.id===id); }
 /* ---------------- render root ---------------- */
 function render(){
   const app = document.getElementById('app');
-  app.innerHTML = renderHeader() + (state.view==='dashboard' ? renderDashboard() : renderDetail());
+  let body;
+  if(state.view==='hub') body = renderHub();
+  else if(state.view==='dimension') body = renderDimensionPage();
+  else body = renderDetail();
+  app.innerHTML = renderHeader() + body;
   if(state.modal === 'goal') app.insertAdjacentHTML('beforeend', renderGoalModal());
   if(state.modal === 'delete-confirm') app.insertAdjacentHTML('beforeend', renderDeleteModal());
-  if(state.modal === 'settings') app.insertAdjacentHTML('beforeend', renderSettingsModal());
   attachEvents();
 }
 
 function renderHeader(){
+  let navBtns = '';
+  if(state.view==='hub'){
+    navBtns = `<button class="btn btn-primary" data-action="new-goal">+ Target Baru</button>`;
+  } else if(state.view==='dimension'){
+    const dim = getDimension(state.activeDimension);
+    navBtns = `<button class="btn btn-outline" data-action="go-hub">← Semua Dimensi</button>
+      <button class="btn btn-primary" data-action="new-goal" data-presetdim="${dim.id}">+ Tambah Target</button>`;
+  } else {
+    navBtns = `<button class="btn btn-outline" data-action="back-to-dimension">← Kembali</button>`;
+  }
   return `
   <div class="app-header">
     <div class="brand">
@@ -541,58 +596,111 @@ function renderHeader(){
     </div>
     <div class="header-actions">
       <button class="btn-icon" data-action="toggle-theme" title="Ganti tema">${state.theme==='dark'?'☀️':'🌙'}</button>
-      <button class="btn-icon" data-action="open-settings" title="Reminder Telegram">🔔</button>
-      ${state.view==='dashboard'
-        ? `<button class="btn btn-primary" data-action="new-goal">+ Target Baru</button>`
-        : `<button class="btn btn-outline" data-action="back-dashboard">← Semua Target</button>`}
+      ${navBtns}
     </div>
   </div>`;
 }
 
-/* ---------------- dashboard ---------------- */
-function renderDashboard(){
-  if(state.goals.length===0){
-    return `
-    <div class="empty-state">
+/* ---------------- hub: 8 dimensi kesejahteraan ---------------- */
+function renderHub(){
+  const counts = {};
+  DIMENSIONS.forEach(d=>counts[d.id]=0);
+  state.goals.forEach(g=>{ const id=getDimension(g.dimension).id; counts[id]=(counts[id]||0)+1; });
+
+  const introEmpty = state.goals.length===0 ? `
+    <div class="empty-state" style="margin-bottom:24px;">
       <svg class="cmp" viewBox="0 0 100 100" fill="none">
         <circle cx="50" cy="50" r="46" stroke="#D4A64A" stroke-width="2.5"/>
         <circle cx="50" cy="50" r="3" fill="#1D3557"/>
         <path d="M50 12 L58 48 L50 88 L42 48 Z" fill="#D4A64A"/>
       </svg>
       <h2>Belum ada target yang dibuat</h2>
-      <p>Mulai dengan menuliskan kondisi sekarang, kondisi yang diinginkan, dan strategi (HOW). Sistem akan otomatis memecahnya jadi rencana bulanan, pekanan, hingga ceklis harian.</p>
+      <p>Pilih salah satu dimensi kesejahteraan di bawah untuk mulai membuat target pertamamu.</p>
       <button class="btn btn-primary" data-action="new-goal">+ Buat Target Pertama</button>
+    </div>` : '';
+
+  const cards = DIMENSIONS.filter(d=> d.id!=='lainnya' || counts[d.id]>0).map(dim=>{
+    const goalsInDim = state.goals.filter(g=>getDimension(g.dimension).id===dim.id);
+    const c = dimColor(dim);
+    const avgPct = goalsInDim.length ? Math.round(goalsInDim.reduce((s,g)=>s+goalProgress(g).pct,0)/goalsInDim.length) : 0;
+    return `
+    <div class="hub-card" style="border-top-color:${c}" data-action="open-dimension" data-dim="${dim.id}">
+      <div class="hub-card-icon" style="background:${c}">${dim.icon}</div>
+      <div class="hub-card-title">${dim.label}</div>
+      ${goalsInDim.length ? `
+        <div class="hub-card-count">${goalsInDim.length} target</div>
+        <div class="prog-mini"><div style="width:${avgPct}%;background:${c}"></div></div>
+        <div class="hub-card-pct">${avgPct}% rata-rata progres</div>
+      ` : `<div class="hub-card-empty">Belum ada target</div>`}
     </div>`;
-  }
-  return `<div class="goal-grid">${state.goals.map(renderGoalCard).join('')}</div>`;
+  }).join('');
+
+  return `
+  <div class="hub-intro">
+    <h2>8 Dimensi Kesejahteraan</h2>
+    <p>Setiap target dikelompokkan ke salah satu dimensi supaya tidak tercampur. Pilih dimensi untuk melihat target di dalamnya.</p>
+  </div>
+  ${introEmpty}
+  <div class="hub-grid">${cards}</div>`;
 }
 
+/* ---------------- dimension page ---------------- */
+function renderDimensionPage(){
+  const dim = getDimension(state.activeDimension);
+  const c = dimColor(dim);
+  const goals = state.goals.filter(g=>getDimension(g.dimension).id===dim.id);
+  const head = `
+  <div class="dim-page-head" style="--dim-color:${c}">
+    <div class="dim-page-icon">${dim.icon}</div>
+    <div>
+      <div class="dim-page-title">${dim.label}</div>
+      <div class="dim-page-sub">${goals.length} target${goals.length ? ' · rata-rata progres ' + Math.round(goals.reduce((s,g)=>s+goalProgress(g).pct,0)/goals.length) + '%' : ''}</div>
+    </div>
+  </div>`;
+  if(goals.length===0){
+    return head + `
+    <div class="empty-state">
+      <div style="font-size:38px;margin-bottom:10px;">${dim.icon}</div>
+      <h2>Belum ada target di ${dim.label}</h2>
+      <p>Buat target baru dan kelompokkan langsung ke dimensi ${dim.label}.</p>
+      <button class="btn btn-primary" data-action="new-goal" data-presetdim="${dim.id}">+ Buat Target ${dim.label}</button>
+    </div>`;
+  }
+  return head + `<div class="goal-grid">${goals.map(renderGoalCard).join('')}</div>`;
+}
 function renderGoalCard(g){
+  const dim = getDimension(g.dimension);
+  const c = dimColor(dim);
   const { achieved, pct } = goalProgress(g);
   const unit = goalUnit(g);
   const circ = 2*Math.PI*32;
   const dash = circ*(pct/100);
   return `
-  <div class="goal-card" data-open="${g.id}">
+  <div class="goal-card" style="border-top-color:${c}" data-open="${g.id}">
     <div class="goal-card-top">
       <div class="goal-icon">${g.icon}</div>
       <div>
         <div class="goal-card-title">${escapeHtml(g.title)}</div>
-        <div class="goal-card-cat">${unit || 'Target'}</div>
+        <div class="goal-card-cat" style="color:${c}">${dim.icon} ${dim.label}</div>
       </div>
     </div>
     <div class="goal-card-mid">
       <div class="ring-wrap">
         <svg width="76" height="76" viewBox="0 0 76 76">
           <circle cx="38" cy="38" r="32" fill="none" stroke="var(--bg-card-alt)" stroke-width="7"/>
-          <circle cx="38" cy="38" r="32" fill="none" stroke="var(--teal)" stroke-width="7"
+          <circle cx="38" cy="38" r="32" fill="none" stroke="${c}" stroke-width="7"
             stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
         </svg>
         <div class="ring-pct">${pct}%</div>
       </div>
       <div class="goal-card-stat">
+        ${g.goalType==='rutin' ? `
+        <div class="row"><span>Target harian</span><b>${fmtNum(g.dailyTarget,unit)}</b></div>
+        <div class="row"><span>Hari tercapai</span><b>${countCheckedDays(g)}/${totalPlanDays(g)}</b></div>
+        ` : `
         <div class="row"><span>Tercapai</span><b>${fmtNum(achieved, unit)}</b></div>
         <div class="row"><span>Target</span><b>${fmtNum(g.targetValue, unit)}</b></div>
+        `}
       </div>
     </div>
     <div class="goal-card-flow">→ <b>${escapeHtml(truncate(g.kondisiDiinginkan,60))}</b></div>
@@ -610,16 +718,18 @@ function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 /* ---------------- detail view ---------------- */
 function renderDetail(){
   const g = getGoal(state.activeGoalId);
-  if(!g){ state.view='dashboard'; return renderDashboard(); }
+  if(!g){ state.view='hub'; return renderHub(); }
   const { achieved, pct } = goalProgress(g);
   const unit = goalUnit(g);
+  const dim = getDimension(g.dimension);
+  const c = dimColor(dim);
   return `
   <div class="detail-header">
     <div class="detail-title-wrap">
-      <div class="detail-icon">${g.icon}</div>
+      <div class="detail-icon" style="background:${c};color:#fff;">${g.icon}</div>
       <div class="detail-title">
         <h2>${escapeHtml(g.title)}</h2>
-        <span>Mulai ${formatDate(g.startDate)} · ${unit || 'satuan bebas'}</span>
+        <span>Mulai ${formatDate(g.startDate)} · <span style="color:${c};font-weight:700;">${dim.icon} ${dim.label}</span> · ${unit || 'satuan bebas'}</span>
       </div>
     </div>
     <button class="btn btn-outline btn-sm" data-action="edit-goal" data-id="${g.id}">✎ Edit Target</button>
@@ -654,6 +764,19 @@ function renderRingkasan(g, achieved, pct, unit){
       <div class="lbl">Target Hari Ini</div>
     </div>`;
   }
+  const isRutin = g.goalType==='rutin';
+  const statsHtml = isRutin ? `
+      <div class="stat-box"><div class="num">${fmtNum(g.dailyTarget,unit)}</div><div class="lbl">Target / Hari</div></div>
+      <div class="stat-box"><div class="num">${countCheckedDays(g)}/${totalPlanDays(g)}</div><div class="lbl">Hari Tercapai</div></div>
+      <div class="stat-box"><div class="num">${pct}%</div><div class="lbl">Rata-rata Capaian</div></div>
+      ${todayTargetHtml}
+  ` : `
+      <div class="stat-box"><div class="num">${fmtNum(g.currentValue,unit)}</div><div class="lbl">Nilai Awal</div></div>
+      <div class="stat-box"><div class="num">${fmtNum(achieved,unit)}</div><div class="lbl">Tercapai</div></div>
+      <div class="stat-box"><div class="num">${fmtNum(g.targetValue,unit)}</div><div class="lbl">Target Akhir</div></div>
+      <div class="stat-box"><div class="num">${pct}%</div><div class="lbl">Progres</div></div>
+      ${todayTargetHtml}
+  `;
   return `
   <div class="card">
     <h4>📍 Bagian 1 — Kondisi &amp; Strategi</h4>
@@ -673,11 +796,7 @@ function renderRingkasan(g, achieved, pct, unit){
       <div class="flow-text">${escapeHtml(g.how) || '—'}</div>
     </div>
     <div class="stat-row">
-      <div class="stat-box"><div class="num">${fmtNum(g.currentValue,unit)}</div><div class="lbl">Nilai Awal</div></div>
-      <div class="stat-box"><div class="num">${fmtNum(achieved,unit)}</div><div class="lbl">Tercapai</div></div>
-      <div class="stat-box"><div class="num">${fmtNum(g.targetValue,unit)}</div><div class="lbl">Target Akhir</div></div>
-      <div class="stat-box"><div class="num">${pct}%</div><div class="lbl">Progres</div></div>
-      ${todayTargetHtml}
+      ${statsHtml}
     </div>
   </div>
   <div class="card">
@@ -826,10 +945,12 @@ function renderDayCell(g,d,mi,wi,di,dTarget,unit,todayCell){
 /* ---------------- goal modal ---------------- */
 function renderGoalModal(){
   const editing = state.editingGoal;
-  const g = editing || { icon:'🎯', unit:'Rp', unitCustom:'', title:'', kondisiSekarang:'', kondisiDiinginkan:'', how:'', currentValue:0, targetValue:0, startDate: new Date().toISOString().slice(0,10), durationMonths:12 };
+  const g = editing || { icon:'🎯', unit:'Rp', unitCustom:'', title:'', kondisiSekarang:'', kondisiDiinginkan:'', how:'', currentValue:0, targetValue:0, dailyTarget:0, goalType:'akumulasi', startDate: new Date().toISOString().slice(0,10), durationMonths:12, dimension: state.presetDimension };
   const dur = g.durationMonths || 12;
   const presetDur = [3,6,9,12,18,24];
   const isPreset = presetDur.includes(dur);
+  const activeDim = g.dimension;
+  const isRutin = g.goalType==='rutin';
   return `
   <div class="overlay" data-action="close-modal">
     <div class="modal" onclick="event.stopPropagation()">
@@ -839,26 +960,43 @@ function renderGoalModal(){
       </div>
       <div class="modal-body">
         <div class="field">
-          <label>Nama Target</label>
-          <input type="text" id="f-title" value="${escapeAttr(g.title)}" placeholder="Contoh: Macbook Pro, Umroh, Turun Berat Badan">
+          <label>Dimensi Kesejahteraan</label>
+          <div class="dim-picker" id="dim-picker">
+            ${DIMENSIONS.map(d=>`
+            <div class="dim-choice ${activeDim===d.id?'active':''}" data-dim="${d.id}" style="--chip-color:${dimColor(d)}">
+              <span class="dim-choice-icon">${d.icon}</span><span>${d.label}</span>
+            </div>`).join('')}
+          </div>
+          <div class="hint">Pilih salah satu dari 8 dimensi kesejahteraan supaya target ini tidak tercampur dengan kategori lain di dashboard.</div>
         </div>
         <div class="field">
-          <label>Ikon</label>
-          <div class="icon-picker" id="icon-picker">
-            ${ICONS.map(ic=>`<div class="icon-choice ${g.icon===ic?'active':''}" data-icon="${ic}">${ic}</div>`).join('')}
-          </div>
+          <label>Nama Target</label>
+          <input type="text" id="f-title" value="${escapeAttr(g.title)}" placeholder="Contoh: Macbook Pro, Umroh, Lari 10.000 Langkah">
         </div>
         <div class="field">
           <label>Kondisi Sekarang</label>
-          <textarea id="f-now" placeholder="Contoh: Belum punya Macbook">${escapeHtml(g.kondisiSekarang)}</textarea>
+          <textarea id="f-now" placeholder="Contoh: Belum punya Macbook / Jarang jalan kaki">${escapeHtml(g.kondisiSekarang)}</textarea>
         </div>
         <div class="field">
           <label>Kondisi yang Diinginkan</label>
-          <textarea id="f-want" placeholder="Contoh: Punya Macbook Pro">${escapeHtml(g.kondisiDiinginkan)}</textarea>
+          <textarea id="f-want" placeholder="Contoh: Punya Macbook Pro / Rutin jalan 10.000 langkah tiap hari">${escapeHtml(g.kondisiDiinginkan)}</textarea>
         </div>
         <div class="field">
           <label>How — Strategi</label>
-          <textarea id="f-how" placeholder="Contoh: Nabung 1 bulan 1 juta karena harganya 12 juta">${escapeHtml(g.how)}</textarea>
+          <textarea id="f-how" placeholder="Contoh: Nabung 1 bulan 1 juta / Jalan pagi 30 menit tiap hari">${escapeHtml(g.how)}</textarea>
+        </div>
+        <div class="field">
+          <label>Tipe Target</label>
+          <div class="type-toggle" id="type-toggle">
+            <button type="button" class="type-btn ${!isRutin?'active':''}" data-type="akumulasi">
+              <span class="type-btn-title">📈 Akumulasi</span>
+              <span class="type-btn-sub">Menabung/mengumpulkan bertahap menuju satu total akhir</span>
+            </button>
+            <button type="button" class="type-btn ${isRutin?'active':''}" data-type="rutin">
+              <span class="type-btn-title">🔁 Rutin Harian</span>
+              <span class="type-btn-sub">Target sama tiap hari, contoh: 10.000 langkah/hari</span>
+            </button>
+          </div>
         </div>
         <div class="row2">
           <div class="field">
@@ -872,7 +1010,7 @@ function renderGoalModal(){
             <input type="text" id="f-unit-custom" value="${escapeAttr(g.unitCustom||'')}" placeholder="misal: sesi, poin">
           </div>
         </div>
-        <div class="row2">
+        <div class="row2" id="akumulasi-fields" style="${isRutin?'display:none;':''}">
           <div class="field">
             <label>Nilai Sekarang</label>
             <input type="text" inputmode="decimal" id="f-current" value="${displayIDNumber(g.currentValue)}">
@@ -882,6 +1020,11 @@ function renderGoalModal(){
             <label>Nilai Target</label>
             <input type="text" inputmode="decimal" id="f-target" value="${displayIDNumber(g.targetValue)}">
           </div>
+        </div>
+        <div class="field" id="rutin-fields" style="${isRutin?'':'display:none;'}">
+          <label>Target per Hari</label>
+          <input type="text" inputmode="decimal" id="f-daily" value="${displayIDNumber(g.dailyTarget||0)}">
+          <div class="hint">Contoh: 10.000 untuk 10.000 langkah setiap hari — jumlah ini akan sama tiap hari selama durasi rencana, tidak perlu dihitung manual per tahun.</div>
         </div>
         <div class="row2">
           <div class="field">
@@ -924,112 +1067,6 @@ function renderDeleteModal(){
   </div>`;
 }
 
-/* ---------------- settings / telegram modal ---------------- */
-function renderSettingsModal(){
-  const s = state.settings;
-  return `
-  <div class="overlay" data-action="close-modal">
-    <div class="modal" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <h3>🔔 Reminder via Telegram</h3>
-        <button class="btn btn-ghost" data-action="close-modal">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="help-box">
-          <b>Cara mendapatkan Bot Token &amp; Chat ID:</b><br>
-          1. Chat <code>@BotFather</code> di Telegram → <code>/newbot</code> → salin token yang diberikan.<br>
-          2. Kirim pesan apa saja ke bot barumu, lalu buka
-          <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> di browser untuk melihat <code>chat.id</code> milikmu.<br>
-          3. Tempel keduanya di bawah ini.
-        </div>
-        <div class="field">
-          <label>Bot Token</label>
-          <input type="text" id="s-token" value="${escapeAttr(s.botToken)}" placeholder="123456:ABC-DEF...">
-        </div>
-        <div class="field">
-          <label>Chat ID</label>
-          <input type="text" id="s-chatid" value="${escapeAttr(s.chatId)}" placeholder="123456789">
-        </div>
-        <div class="row2">
-          <div class="field">
-            <label>Waktu Reminder Harian</label>
-            <input type="time" id="s-time" value="${s.reminderTime}">
-          </div>
-          <div class="field">
-            <label>Status</label>
-            <div class="checkbox-row" style="margin-top:11px;">
-              <input type="checkbox" id="s-enabled" ${s.enabled?'checked':''}>
-              <label for="s-enabled">Aktifkan reminder otomatis</label>
-            </div>
-          </div>
-        </div>
-        <div class="hint">⚠️ Reminder otomatis hanya terkirim saat tab/halaman ini masih terbuka di browser — ini bukan notifikasi push server. Untuk memastikan bot bekerja, coba tombol "Kirim Tes Sekarang" di bawah.</div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" data-action="close-modal">Tutup</button>
-        <button class="btn btn-teal" data-action="test-reminder">📤 Kirim Tes Sekarang</button>
-        <button class="btn btn-primary" data-action="save-settings">Simpan Pengaturan</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-function composeReminderMessage(){
-  const today = new Date().toLocaleDateString('id-ID',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
-  let lines = [`📋 <b>Reminder Formula Sukses</b>`, today, ''];
-  if(state.goals.length===0){ lines.push('Belum ada target yang dibuat.'); }
-  else{
-    let any=false;
-    state.goals.forEach(g=>{
-      const cell = getTodayCell(g);
-      if(!cell){ return; }
-      any = true;
-      const w = g.months[cell.mi].weeks[cell.wi];
-      const dt = roundSensible(dayTarget(w), goalUnit(g));
-      lines.push(`${g.icon} <b>${escapeForTelegram(g.title)}</b> — ${fmtNum(dt, goalUnit(g))} hari ini (Pekan ${cell.wi+1}, ${monthLabel(g,cell.mi)})`);
-    });
-    if(!any) lines.push('Semua target belum dimulai atau sudah melewati rencana yang ditetapkan.');
-  }
-  lines.push('', 'Ayo centang progres hari ini di aplikasi 💪');
-  return lines.join('\n');
-}
-function escapeForTelegram(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-async function sendTelegramMessage(text){
-  const { botToken, chatId } = state.settings;
-  if(!botToken || !chatId){ showToast('Isi Bot Token & Chat ID dulu'); return false; }
-  try{
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode:'HTML' })
-    });
-    const data = await res.json();
-    if(data.ok){ showToast('Reminder terkirim ke Telegram ✅'); return true; }
-    showToast('Gagal kirim: ' + (data.description || 'cek token/chat id'));
-    return false;
-  }catch(e){
-    showToast('Gagal kirim: koneksi bermasalah');
-    return false;
-  }
-}
-
-function startReminderClock(){
-  if(reminderInterval) clearInterval(reminderInterval);
-  reminderInterval = setInterval(checkReminderTime, 20000);
-  checkReminderTime();
-}
-async function checkReminderTime(){
-  const s = state.settings;
-  if(!s.enabled || !s.botToken || !s.chatId) return;
-  const now = new Date();
-  const hhmm = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const todayStr = now.toISOString().slice(0,10);
-  if(hhmm === s.reminderTime && s.lastSentDate !== todayStr){
-    const ok = await sendTelegramMessage(composeReminderMessage());
-    if(ok){ s.lastSentDate = todayStr; saveSettings(); }
-  }
-}
-
 /* ---------------- events ---------------- */
 function attachEvents(){
   const app = document.getElementById('app');
@@ -1043,16 +1080,21 @@ function attachEvents(){
     });
   });
 
-  app.querySelectorAll('[data-action="back-dashboard"]').forEach(el=>el.addEventListener('click',()=>{
-    state.view='dashboard'; render();
+  app.querySelectorAll('[data-action="go-hub"]').forEach(el=>el.addEventListener('click',()=>{
+    state.view='hub'; state.activeDimension=null; render();
+  }));
+  app.querySelectorAll('[data-action="open-dimension"]').forEach(el=>el.addEventListener('click',()=>{
+    state.activeDimension = el.getAttribute('data-dim'); state.view='dimension'; render();
+  }));
+  app.querySelectorAll('[data-action="back-to-dimension"]').forEach(el=>el.addEventListener('click',()=>{
+    state.view = state.activeDimension ? 'dimension' : 'hub'; render();
   }));
   app.querySelectorAll('[data-action="toggle-theme"]').forEach(el=>el.addEventListener('click', toggleTheme));
-  app.querySelectorAll('[data-action="open-settings"]').forEach(el=>el.addEventListener('click',()=>{
-    state.modal='settings'; render();
-  }));
 
   app.querySelectorAll('[data-action="new-goal"]').forEach(el=>el.addEventListener('click',()=>{
-    state.editingGoal=null; state.modal='goal'; render();
+    state.editingGoal=null;
+    state.presetDimension = el.getAttribute('data-presetdim') || null;
+    state.modal='goal'; render();
   }));
   app.querySelectorAll('[data-action="edit-goal"]').forEach(el=>el.addEventListener('click',(e)=>{
     e.stopPropagation();
@@ -1063,16 +1105,19 @@ function attachEvents(){
     state._deleteId = el.getAttribute('data-id'); state.modal='delete-confirm'; render();
   }));
   app.querySelectorAll('[data-action="close-modal"]').forEach(el=>el.addEventListener('click',()=>{
-    state.modal=null; state.editingGoal=null; render();
+    state.modal=null; state.editingGoal=null; state.presetDimension=null; render();
   }));
   app.querySelectorAll('[data-action="confirm-delete"]').forEach(el=>el.addEventListener('click',()=>{
     state.goals = state.goals.filter(g=>g.id!==state._deleteId);
-    if(state.activeGoalId===state._deleteId){ state.view='dashboard'; state.activeGoalId=null; }
+    if(state.activeGoalId===state._deleteId){
+      state.view = state.activeDimension ? 'dimension' : 'hub';
+      state.activeGoalId=null;
+    }
     state.modal=null; saveGoals(); showToast('Target dihapus'); render();
   }));
 
-  app.querySelectorAll('#icon-picker .icon-choice').forEach(el=>el.addEventListener('click',()=>{
-    app.querySelectorAll('#icon-picker .icon-choice').forEach(x=>x.classList.remove('active'));
+  app.querySelectorAll('#dim-picker .dim-choice').forEach(el=>el.addEventListener('click',()=>{
+    app.querySelectorAll('#dim-picker .dim-choice').forEach(x=>x.classList.remove('active'));
     el.classList.add('active');
   }));
   const unitSel = document.getElementById('f-unit');
@@ -1087,7 +1132,14 @@ function attachEvents(){
       document.getElementById('f-duration-custom-wrap').style.display = durSel.value==='custom' ? '' : 'none';
     });
   }
-  ['f-current','f-target'].forEach(id=>{
+  app.querySelectorAll('#type-toggle .type-btn').forEach(el=>el.addEventListener('click',()=>{
+    app.querySelectorAll('#type-toggle .type-btn').forEach(x=>x.classList.remove('active'));
+    el.classList.add('active');
+    const isRutin = el.getAttribute('data-type')==='rutin';
+    document.getElementById('akumulasi-fields').style.display = isRutin ? 'none' : '';
+    document.getElementById('rutin-fields').style.display = isRutin ? '' : 'none';
+  }));
+  ['f-current','f-target','f-daily'].forEach(id=>{
     const el = document.getElementById(id);
     if(el){ el.addEventListener('input', ()=>{ el.value = formatIDInput(el.value); }); }
   });
@@ -1117,7 +1169,7 @@ function attachEvents(){
   });
   app.querySelectorAll('[data-action="reset-auto"]').forEach(el=>el.addEventListener('click',()=>{
     const g = getGoal(el.getAttribute('data-id'));
-    g.months = buildDefaultMonths(g.currentValue, g.targetValue, g.durationMonths||g.months.length);
+    g.months = buildDefaultMonths(g.currentValue, g.targetValue, g.durationMonths||g.months.length, g.goalType||'akumulasi', g.dailyTarget||0);
     saveGoals(); showToast('Rencana direset ke pembagian otomatis'); render();
   }));
 
@@ -1149,31 +1201,17 @@ function attachEvents(){
       saveGoals(); render();
     });
   });
-
-  app.querySelectorAll('[data-action="save-settings"]').forEach(el=>el.addEventListener('click',()=>{
-    state.settings.botToken = document.getElementById('s-token').value.trim();
-    state.settings.chatId = document.getElementById('s-chatid').value.trim();
-    state.settings.reminderTime = document.getElementById('s-time').value || '07:00';
-    state.settings.enabled = document.getElementById('s-enabled').checked;
-    saveSettings();
-    state.modal=null; showToast('Pengaturan reminder disimpan'); render();
-  }));
-  app.querySelectorAll('[data-action="test-reminder"]').forEach(el=>el.addEventListener('click',()=>{
-    const token = document.getElementById('s-token').value.trim();
-    const chatId = document.getElementById('s-chatid').value.trim();
-    state.settings.botToken = token; state.settings.chatId = chatId;
-    sendTelegramMessage(composeReminderMessage());
-  }));
 }
 
 function saveGoalFromForm(existingId){
   const title = document.getElementById('f-title').value.trim();
   if(!title){ showToast('Nama target wajib diisi'); return; }
-  const icon = document.querySelector('#icon-picker .icon-choice.active')?.getAttribute('data-icon') || '🎯';
+  const dimEl = document.querySelector('#dim-picker .dim-choice.active');
+  if(!dimEl){ showToast('Pilih dimensi kesejahteraan dulu'); return; }
+  const dimension = dimEl.getAttribute('data-dim');
+  const icon = getDimension(dimension).icon;
   const unit = document.getElementById('f-unit').value;
   const unitCustom = document.getElementById('f-unit-custom')?.value.trim() || '';
-  const currentValue = parseIDNumber(document.getElementById('f-current').value);
-  const targetValue = parseIDNumber(document.getElementById('f-target').value);
   const startDate = document.getElementById('f-start').value;
   const kondisiSekarang = document.getElementById('f-now').value.trim();
   const kondisiDiinginkan = document.getElementById('f-want').value.trim();
@@ -1183,23 +1221,36 @@ function saveGoalFromForm(existingId){
     ? Math.max(1, parseInt(document.getElementById('f-duration-custom').value)||1)
     : parseInt(durSelVal);
 
+  const goalType = document.querySelector('#type-toggle .type-btn.active')?.getAttribute('data-type') || 'akumulasi';
+  let currentValue, targetValue, dailyTarget=0;
+  if(goalType==='rutin'){
+    dailyTarget = parseIDNumber(document.getElementById('f-daily').value);
+    if(dailyTarget<=0){ showToast('Isi target per hari dulu'); return; }
+    currentValue = 0;
+    targetValue = dailyTarget * durationMonths * 28;
+  } else {
+    currentValue = parseIDNumber(document.getElementById('f-current').value);
+    targetValue = parseIDNumber(document.getElementById('f-target').value);
+  }
+
   if(existingId){
     const g = getGoal(existingId);
-    const valueChanged = g.currentValue!==currentValue || g.targetValue!==targetValue || (g.durationMonths||12)!==durationMonths;
-    Object.assign(g, { title, icon, unit, unitCustom, currentValue, targetValue, startDate, kondisiSekarang, kondisiDiinginkan, how, durationMonths });
-    if(valueChanged){ g.months = buildDefaultMonths(currentValue,targetValue,durationMonths); showToast('Target diperbarui — rencana bulanan di-reset ulang'); }
+    const valueChanged = g.currentValue!==currentValue || g.targetValue!==targetValue
+      || (g.durationMonths||12)!==durationMonths || (g.goalType||'akumulasi')!==goalType || (g.dailyTarget||0)!==dailyTarget;
+    Object.assign(g, { title, icon, dimension, unit, unitCustom, currentValue, targetValue, dailyTarget, goalType, startDate, kondisiSekarang, kondisiDiinginkan, how, durationMonths });
+    if(valueChanged){ g.months = buildDefaultMonths(currentValue,targetValue,durationMonths,goalType,dailyTarget); showToast('Target diperbarui — rencana bulanan di-reset ulang'); }
     else{ showToast('Target diperbarui'); }
   } else {
     const g = {
-      id: uid(), title, icon, unit, unitCustom, currentValue, targetValue, startDate, durationMonths,
+      id: uid(), title, icon, dimension, unit, unitCustom, currentValue, targetValue, dailyTarget, goalType, startDate, durationMonths,
       kondisiSekarang, kondisiDiinginkan, how,
-      months: buildDefaultMonths(currentValue,targetValue,durationMonths),
+      months: buildDefaultMonths(currentValue,targetValue,durationMonths,goalType,dailyTarget),
       _openMonth: null, _selMonth: 0
     };
     state.goals.push(g);
     showToast('Target baru dibuat 🎯');
   }
-  state.modal=null; state.editingGoal=null;
+  state.modal=null; state.editingGoal=null; state.presetDimension=null;
   saveGoals(); render();
 }
 
