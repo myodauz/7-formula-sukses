@@ -385,11 +385,33 @@ function fmtCompact(v,unit){
   return (Math.round(v*10)/10).toString();
 }
 
-function buildDefaultMonths(currentValue, targetValue){
+/* Indonesian-style thousand separator for number inputs (e.g. 12.000.000) */
+function formatIDInput(raw){
+  raw = (raw||'').toString().replace(/[^\d,]/g,'');
+  const commaIdx = raw.indexOf(',');
+  let intPart = commaIdx>=0 ? raw.slice(0,commaIdx) : raw;
+  let decPart = commaIdx>=0 ? raw.slice(commaIdx+1).replace(/,/g,'').slice(0,2) : null;
+  intPart = intPart.replace(/^0+(?=\d)/,'');
+  if(intPart==='') intPart='0';
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  return decPart!==null ? formattedInt+','+decPart : formattedInt;
+}
+function parseIDNumber(str){
+  if(!str) return 0;
+  const n = parseFloat(str.toString().replace(/\./g,'').replace(',','.'));
+  return isNaN(n) ? 0 : n;
+}
+function displayIDNumber(n){
+  if(n===null||n===undefined||isNaN(n)) n=0;
+  return Number.isInteger(n) ? n.toLocaleString('id-ID') : n.toLocaleString('id-ID',{maximumFractionDigits:2});
+}
+
+function buildDefaultMonths(currentValue, targetValue, durationMonths){
+  durationMonths = Math.max(1, parseInt(durationMonths)||12);
   const remaining = Math.max(targetValue - currentValue, 0);
-  const perMonth = remaining/12;
+  const perMonth = remaining/durationMonths;
   const months = [];
-  for(let m=0;m<12;m++){
+  for(let m=0;m<durationMonths;m++){
     const weeks = [];
     const perWeek = perMonth/4;
     for(let w=0;w<4;w++){
@@ -400,6 +422,12 @@ function buildDefaultMonths(currentValue, targetValue){
     months.push({ target: perMonth, weeks });
   }
   return months;
+}
+
+function monthLabel(g, i){
+  const start = new Date(g.startDate+'T00:00:00');
+  const d = new Date(start.getFullYear(), start.getMonth()+i, 1);
+  return MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
 }
 
 function goalUnit(g){ return g.unit === 'custom' ? (g.unitCustom||'') : g.unit; }
@@ -429,7 +457,8 @@ function getTodayCell(goal){
   const start = new Date(goal.startDate+'T00:00:00');
   const now = new Date(); now.setHours(0,0,0,0);
   const daysSince = Math.floor((now-start)/86400000);
-  if(daysSince < 0 || daysSince >= 12*28) return null;
+  const totalDays = goal.months.length*28;
+  if(daysSince < 0 || daysSince >= totalDays) return null;
   const mi = Math.floor(daysSince/28);
   const rem = daysSince % 28;
   const wi = Math.floor(rem/7);
@@ -603,7 +632,7 @@ function renderRingkasan(g, achieved, pct, unit){
     </div>
   </div>
   <div class="card">
-    <h4>📈 Grafik Target vs Realisasi (12 Bulan)</h4>
+    <h4>📈 Grafik Target vs Realisasi (${g.months.length} Bulan)</h4>
     ${renderChart(g, unit)}
     <div class="legend">
       <span><i style="background:var(--gold-deep)"></i>Target kumulatif (rencana)</span>
@@ -614,13 +643,14 @@ function renderRingkasan(g, achieved, pct, unit){
 
 function renderChart(g, unit){
   const W=680,H=220,PAD=36;
+  const n = g.months.length;
   const targetPts = [], actualPts=[];
-  for(let i=0;i<12;i++){
+  for(let i=0;i<n;i++){
     targetPts.push(g.currentValue + sumTargetUpToMonth(g,i));
     actualPts.push(g.currentValue + sumActualUpToMonth(g,i));
   }
   const maxVal = Math.max(g.targetValue, ...targetPts, ...actualPts, 1);
-  const x = i => PAD + (i/11)*(W-PAD*2);
+  const x = i => PAD + (n>1 ? (i/(n-1))*(W-PAD*2) : 0);
   const y = v => H-PAD - (v/maxVal)*(H-PAD*2);
   const pathFor = pts => pts.map((v,i)=> (i===0?'M':'L') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
   const gridColor = state.theme==='dark' ? '#243654' : '#EBE1C8';
@@ -630,7 +660,12 @@ function renderChart(g, unit){
     return `<line x1="${PAD}" y1="${yy}" x2="${W-PAD}" y2="${yy}" stroke="${gridColor}" stroke-width="1"/>
     <text x="4" y="${yy+3}" font-size="9" fill="${textColor}" font-family="JetBrains Mono">${fmtCompact(maxVal*f, unit)}</text>`;
   }).join('');
-  const monthTicks = [0,2,4,6,8,10].map(i=>`<text x="${x(i)}" y="${H-PAD+16}" font-size="9" fill="${textColor}" text-anchor="middle" font-family="Montserrat">${MONTH_NAMES[i].slice(0,3)}</text>`).join('');
+  const tickCount = Math.min(6, n);
+  const tickStep = Math.max(1, Math.round(n/tickCount));
+  const tickIdx = [];
+  for(let i=0;i<n;i+=tickStep){ tickIdx.push(i); }
+  if(tickIdx[tickIdx.length-1] !== n-1) tickIdx.push(n-1);
+  const monthTicks = tickIdx.map(i=>`<text x="${x(i)}" y="${H-PAD+16}" font-size="9" fill="${textColor}" text-anchor="middle" font-family="Montserrat">${monthLabel(g,i).slice(0,3)}</text>`).join('');
   return `<div style="overflow-x:auto;"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="min-width:${W}px;">
     ${gridLines}
     <path d="${pathFor(targetPts)}" fill="none" stroke="#A67C2E" stroke-width="2.5" stroke-dasharray="5 4"/>
@@ -660,7 +695,7 @@ function renderMonthRow(g,m,mi,unit){
   <div class="month-item">
     <div class="month-head" data-action="toggle-month" data-id="${g.id}" data-mi="${mi}">
       <span class="chevron ${isOpen?'open':''}">▶</span>
-      <div class="month-name">${MONTH_NAMES[mi]}</div>
+      <div class="month-name">${monthLabel(g,mi)}</div>
       <div>
         <span class="mini-lbl">Target</span>
         <input class="editable-num" type="number" value="${round2(m.target)}" data-action="set-month-target" data-id="${g.id}" data-mi="${mi}" onclick="event.stopPropagation()">
@@ -701,7 +736,7 @@ function renderHarian(g, unit){
     <p style="font-size:12.5px;color:var(--text-secondary);margin-top:-6px;">Diturunkan dari target pekanan ÷ 7 hari. Klik lingkaran untuk menandai selesai. Klik angka kecil untuk ubah jumlah aktual.</p>
     <div class="day-controls">
       <select data-action="select-month" data-id="${g.id}">
-        ${MONTH_NAMES.map((mn,i)=>`<option value="${i}" ${i===selMonth?'selected':''}>${mn}</option>`).join('')}
+        ${g.months.map((mo,i)=>`<option value="${i}" ${i===selMonth?'selected':''}>${monthLabel(g,i)}</option>`).join('')}
       </select>
       <span style="font-size:12px;color:var(--text-secondary);">Target bulan ini: <b class="mono" style="color:var(--text-primary)">${fmtNum(m.target,unit)}</b></span>
       ${todayCell ? `<button class="btn btn-outline btn-sm" data-action="goto-today" data-id="${g.id}">📍 Lompat ke Hari Ini</button>` : ''}
@@ -741,7 +776,10 @@ function renderDayCell(g,d,mi,wi,di,dTarget,unit,todayCell){
 /* ---------------- goal modal ---------------- */
 function renderGoalModal(){
   const editing = state.editingGoal;
-  const g = editing || { icon:'🎯', unit:'Rp', unitCustom:'', title:'', kondisiSekarang:'', kondisiDiinginkan:'', how:'', currentValue:0, targetValue:0, startDate: new Date().toISOString().slice(0,10) };
+  const g = editing || { icon:'🎯', unit:'Rp', unitCustom:'', title:'', kondisiSekarang:'', kondisiDiinginkan:'', how:'', currentValue:0, targetValue:0, startDate: new Date().toISOString().slice(0,10), durationMonths:12 };
+  const dur = g.durationMonths || 12;
+  const presetDur = [3,6,9,12,18,24];
+  const isPreset = presetDur.includes(dur);
   return `
   <div class="overlay" data-action="close-modal">
     <div class="modal" onclick="event.stopPropagation()">
@@ -787,17 +825,31 @@ function renderGoalModal(){
         <div class="row2">
           <div class="field">
             <label>Nilai Sekarang</label>
-            <input type="number" id="f-current" value="${g.currentValue}">
+            <input type="text" inputmode="decimal" id="f-current" value="${displayIDNumber(g.currentValue)}">
+            <div class="hint">Contoh: 12.000.000 untuk Rp 12 juta</div>
           </div>
           <div class="field">
             <label>Nilai Target</label>
-            <input type="number" id="f-target" value="${g.targetValue}">
+            <input type="text" inputmode="decimal" id="f-target" value="${displayIDNumber(g.targetValue)}">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Durasi Rencana</label>
+            <select id="f-duration">
+              ${presetDur.map(d=>`<option value="${d}" ${dur===d?'selected':''}>${d} Bulan</option>`).join('')}
+              <option value="custom" ${!isPreset?'selected':''}>Custom...</option>
+            </select>
+          </div>
+          <div class="field" id="f-duration-custom-wrap" style="${!isPreset?'':'display:none;'}">
+            <label>Jumlah Bulan Custom</label>
+            <input type="number" min="1" id="f-duration-custom" value="${!isPreset?dur:''}" placeholder="misal: 4">
           </div>
         </div>
         <div class="field">
           <label>Tanggal Mulai</label>
           <input type="date" id="f-start" value="${g.startDate}">
-          <div class="hint">Rencana dibuat untuk 12 bulan ke depan sejak tanggal ini.</div>
+          <div class="hint">Rencana dibuat untuk durasi di atas, dihitung sejak tanggal ini.</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -884,9 +936,9 @@ function composeReminderMessage(){
       any = true;
       const w = g.months[cell.mi].weeks[cell.wi];
       const dt = roundSensible(dayTarget(w), goalUnit(g));
-      lines.push(`${g.icon} <b>${escapeForTelegram(g.title)}</b> — ${fmtNum(dt, goalUnit(g))} hari ini (Pekan ${cell.wi+1}, ${MONTH_NAMES[cell.mi]})`);
+      lines.push(`${g.icon} <b>${escapeForTelegram(g.title)}</b> — ${fmtNum(dt, goalUnit(g))} hari ini (Pekan ${cell.wi+1}, ${monthLabel(g,cell.mi)})`);
     });
-    if(!any) lines.push('Semua target belum dimulai atau sudah melewati rencana 12 bulan.');
+    if(!any) lines.push('Semua target belum dimulai atau sudah melewati rencana yang ditetapkan.');
   }
   lines.push('', 'Ayo centang progres hari ini di aplikasi 💪');
   return lines.join('\n');
@@ -979,6 +1031,16 @@ function attachEvents(){
       document.getElementById('f-unit-custom-wrap').style.display = unitSel.value==='custom' ? '' : 'none';
     });
   }
+  const durSel = document.getElementById('f-duration');
+  if(durSel){
+    durSel.addEventListener('change', ()=>{
+      document.getElementById('f-duration-custom-wrap').style.display = durSel.value==='custom' ? '' : 'none';
+    });
+  }
+  ['f-current','f-target'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.addEventListener('input', ()=>{ el.value = formatIDInput(el.value); }); }
+  });
   app.querySelectorAll('[data-action="save-goal"]').forEach(el=>el.addEventListener('click',()=>{
     saveGoalFromForm(el.getAttribute('data-id'));
   }));
@@ -1005,7 +1067,7 @@ function attachEvents(){
   });
   app.querySelectorAll('[data-action="reset-auto"]').forEach(el=>el.addEventListener('click',()=>{
     const g = getGoal(el.getAttribute('data-id'));
-    g.months = buildDefaultMonths(g.currentValue, g.targetValue);
+    g.months = buildDefaultMonths(g.currentValue, g.targetValue, g.durationMonths||g.months.length);
     saveGoals(); showToast('Rencana direset ke pembagian otomatis'); render();
   }));
 
@@ -1060,24 +1122,28 @@ function saveGoalFromForm(existingId){
   const icon = document.querySelector('#icon-picker .icon-choice.active')?.getAttribute('data-icon') || '🎯';
   const unit = document.getElementById('f-unit').value;
   const unitCustom = document.getElementById('f-unit-custom')?.value.trim() || '';
-  const currentValue = parseFloat(document.getElementById('f-current').value)||0;
-  const targetValue = parseFloat(document.getElementById('f-target').value)||0;
+  const currentValue = parseIDNumber(document.getElementById('f-current').value);
+  const targetValue = parseIDNumber(document.getElementById('f-target').value);
   const startDate = document.getElementById('f-start').value;
   const kondisiSekarang = document.getElementById('f-now').value.trim();
   const kondisiDiinginkan = document.getElementById('f-want').value.trim();
   const how = document.getElementById('f-how').value.trim();
+  const durSelVal = document.getElementById('f-duration').value;
+  let durationMonths = durSelVal==='custom'
+    ? Math.max(1, parseInt(document.getElementById('f-duration-custom').value)||1)
+    : parseInt(durSelVal);
 
   if(existingId){
     const g = getGoal(existingId);
-    const valueChanged = g.currentValue!==currentValue || g.targetValue!==targetValue;
-    Object.assign(g, { title, icon, unit, unitCustom, currentValue, targetValue, startDate, kondisiSekarang, kondisiDiinginkan, how });
-    if(valueChanged){ g.months = buildDefaultMonths(currentValue,targetValue); }
-    showToast('Target diperbarui');
+    const valueChanged = g.currentValue!==currentValue || g.targetValue!==targetValue || (g.durationMonths||12)!==durationMonths;
+    Object.assign(g, { title, icon, unit, unitCustom, currentValue, targetValue, startDate, kondisiSekarang, kondisiDiinginkan, how, durationMonths });
+    if(valueChanged){ g.months = buildDefaultMonths(currentValue,targetValue,durationMonths); showToast('Target diperbarui — rencana bulanan di-reset ulang'); }
+    else{ showToast('Target diperbarui'); }
   } else {
     const g = {
-      id: uid(), title, icon, unit, unitCustom, currentValue, targetValue, startDate,
+      id: uid(), title, icon, unit, unitCustom, currentValue, targetValue, startDate, durationMonths,
       kondisiSekarang, kondisiDiinginkan, how,
-      months: buildDefaultMonths(currentValue,targetValue),
+      months: buildDefaultMonths(currentValue,targetValue,durationMonths),
       _openMonth: null, _selMonth: 0
     };
     state.goals.push(g);
