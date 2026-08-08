@@ -2,7 +2,14 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#D4A64A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Formula Sukses">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Formula Sukses — Habit Tracker</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
@@ -313,19 +320,38 @@ let state = {
 };
 let saveGoalsTimer = null, saveSettingsTimer = null, reminderInterval = null;
 
-/* ---------------- storage ---------------- */
+/* ---------------- storage (works inside claude.ai artifacts AND as a standalone downloaded file) ---------------- */
+async function storageGet(key){
+  try{
+    if(window.storage && typeof window.storage.get === 'function'){
+      const r = await window.storage.get(key);
+      return r ? r.value : null;
+    }
+  }catch(e){ /* fall through to localStorage */ }
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+async function storageSet(key, value){
+  try{
+    if(window.storage && typeof window.storage.set === 'function'){
+      await window.storage.set(key, value);
+      return true;
+    }
+  }catch(e){ /* fall through to localStorage */ }
+  try{ localStorage.setItem(key, value); return true; }catch(e){ return false; }
+}
+
 async function loadAll(){
   try{
-    const g = await window.storage.get('formulaSukses_goals');
-    if(g && g.value) state.goals = JSON.parse(g.value);
+    const gv = await storageGet('formulaSukses_goals');
+    if(gv) state.goals = JSON.parse(gv);
   }catch(e){ state.goals = []; }
   try{
-    const s = await window.storage.get('formulaSukses_settings');
-    if(s && s.value) state.settings = Object.assign(state.settings, JSON.parse(s.value));
+    const sv = await storageGet('formulaSukses_settings');
+    if(sv) state.settings = Object.assign(state.settings, JSON.parse(sv));
   }catch(e){ /* keep defaults */ }
   try{
-    const t = await window.storage.get('formulaSukses_theme');
-    if(t && t.value) state.theme = t.value;
+    const tv = await storageGet('formulaSukses_theme');
+    if(tv) state.theme = tv;
   }catch(e){ /* keep default */ }
   document.documentElement.setAttribute('data-theme', state.theme);
   render();
@@ -334,19 +360,19 @@ async function loadAll(){
 function saveGoals(){
   clearTimeout(saveGoalsTimer);
   saveGoalsTimer = setTimeout(async ()=>{
-    try{ await window.storage.set('formulaSukses_goals', JSON.stringify(state.goals)); }
-    catch(e){ showToast('Gagal menyimpan data'); }
+    const ok = await storageSet('formulaSukses_goals', JSON.stringify(state.goals));
+    if(!ok) showToast('Gagal menyimpan data');
   }, 250);
 }
 function saveSettings(){
   clearTimeout(saveSettingsTimer);
   saveSettingsTimer = setTimeout(async ()=>{
-    try{ await window.storage.set('formulaSukses_settings', JSON.stringify(state.settings)); }
-    catch(e){ showToast('Gagal menyimpan pengaturan'); }
+    const ok = await storageSet('formulaSukses_settings', JSON.stringify(state.settings));
+    if(!ok) showToast('Gagal menyimpan pengaturan');
   }, 200);
 }
 async function saveTheme(){
-  try{ await window.storage.set('formulaSukses_theme', state.theme); }catch(e){}
+  await storageSet('formulaSukses_theme', state.theme);
 }
 
 function showToast(msg){
@@ -1180,6 +1206,13 @@ function saveGoalFromForm(existingId){
 /* ---------------- init ---------------- */
 document.getElementById('app').innerHTML = `<div class="loading-screen"><div class="brand-mark" style="width:56px;height:56px;"></div><p>Memuat data target...</p></div>`;
 loadAll();
+
+/* register service worker for offline/installable support (no-op if not hosted, e.g. opened as local file) */
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
