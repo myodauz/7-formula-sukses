@@ -425,9 +425,32 @@ function buildDefaultMonths(currentValue, targetValue, durationMonths){
 }
 
 function monthLabel(g, i){
+  const start = cellDate(g,i,0,0);
+  const end = cellDate(g,i,3,6);
+  const sameMonth = start.getMonth()===end.getMonth() && start.getFullYear()===end.getFullYear();
+  if(sameMonth){
+    return start.getDate() + '–' + end.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+  }
+  return start.toLocaleDateString('id-ID',{day:'numeric',month:'short'}) + ' – ' + end.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+}
+function monthTickLabel(g, i){
+  return cellDate(g,i,0,0).toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+}
+function weekLabel(g, mi, wi){
+  const start = cellDate(g,mi,wi,0), end = cellDate(g,mi,wi,6);
+  return start.toLocaleDateString('id-ID',{day:'numeric',month:'short'}) + ' – ' + end.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+}
+function cellDate(g, mi, wi, di){
   const start = new Date(g.startDate+'T00:00:00');
-  const d = new Date(start.getFullYear(), start.getMonth()+i, 1);
-  return MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+  const d = new Date(start);
+  d.setDate(d.getDate() + mi*28 + wi*7 + di);
+  return d;
+}
+function shortDayDate(d){
+  return d.toLocaleDateString('id-ID',{weekday:'short'}) + ' ' + d.getDate();
+}
+function fullDateStr(d){
+  return d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
 function goalUnit(g){ return g.unit === 'custom' ? (g.unitCustom||'') : g.unit; }
@@ -665,7 +688,7 @@ function renderChart(g, unit){
   const tickIdx = [];
   for(let i=0;i<n;i+=tickStep){ tickIdx.push(i); }
   if(tickIdx[tickIdx.length-1] !== n-1) tickIdx.push(n-1);
-  const monthTicks = tickIdx.map(i=>`<text x="${x(i)}" y="${H-PAD+16}" font-size="9" fill="${textColor}" text-anchor="middle" font-family="Montserrat">${monthLabel(g,i).slice(0,3)}</text>`).join('');
+  const monthTicks = tickIdx.map(i=>`<text x="${x(i)}" y="${H-PAD+16}" font-size="9" fill="${textColor}" text-anchor="middle" font-family="Montserrat">${monthTickLabel(g,i)}</text>`).join('');
   return `<div style="overflow-x:auto;"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="min-width:${W}px;">
     ${gridLines}
     <path d="${pathFor(targetPts)}" fill="none" stroke="#A67C2E" stroke-width="2.5" stroke-dasharray="5 4"/>
@@ -719,7 +742,7 @@ function renderWeekRow(g,w,mi,wi,unit){
   const pct = w.target>0 ? Math.min(100,Math.round((actual/w.target)*100)) : 0;
   return `
   <div class="week-row">
-    <div class="wk-name">Pekan ${wi+1}</div>
+    <div class="wk-name">Pekan ${wi+1} <span style="color:var(--text-secondary);font-weight:500;">· ${weekLabel(g,mi,wi)}</span></div>
     <div><span class="mini-lbl">Target</span><input class="editable-num" type="number" value="${round2(w.target)}" data-action="set-week-target" data-id="${g.id}" data-mi="${mi}" data-wi="${wi}"></div>
     <div><span class="mini-lbl">Realisasi</span> ${fmtNum(actual,unit)} <span style="color:var(--text-secondary)">(${pct}%)</span></div>
     <div class="prog-mini"><div style="width:${pct}%"></div></div>
@@ -751,7 +774,7 @@ function renderWeekBlock(g,w,mi,wi,unit,todayCell){
   return `
   <div class="week-block">
     <div class="week-block-head">
-      <b>Pekan ${wi+1}</b>
+      <b>Pekan ${wi+1} · ${weekLabel(g,mi,wi)}</b>
       <span>${fmtNum(actual,unit)} / ${fmtNum(w.target,unit)} · ≈ ${fmtNum(dTarget,unit)}/hari</span>
     </div>
     <div class="day-grid">
@@ -763,10 +786,11 @@ function renderWeekBlock(g,w,mi,wi,unit,todayCell){
 function renderDayCell(g,d,mi,wi,di,dTarget,unit,todayCell){
   const val = d.actual!==null && d.actual!==undefined ? d.actual : dTarget;
   const isToday = todayCell && todayCell.mi===mi && todayCell.wi===wi && todayCell.di===di;
+  const dateObj = cellDate(g,mi,wi,di);
   return `
-  <div class="day-cell ${d.checked?'done':''} ${isToday?'today':''}" data-action="toggle-day" data-id="${g.id}" data-mi="${mi}" data-wi="${wi}" data-di="${di}">
+  <div class="day-cell ${d.checked?'done':''} ${isToday?'today':''}" data-action="toggle-day" data-id="${g.id}" data-mi="${mi}" data-wi="${wi}" data-di="${di}" title="${fullDateStr(dateObj)}">
     ${isToday ? '<div class="today-badge">HARI INI</div>' : ''}
-    <div class="d-num">Hari ${di+1}</div>
+    <div class="d-num">${shortDayDate(dateObj)}</div>
     <div class="d-check">${d.checked?'✓':''}</div>
     <div class="d-target">${fmtNum(dTarget,unit)}</div>
     ${d.checked ? `<input class="d-actual-edit" type="number" value="${round2(val)}" data-action="set-day-actual" data-id="${g.id}" data-mi="${mi}" data-wi="${wi}" data-di="${di}" onclick="event.stopPropagation()">` : ''}
