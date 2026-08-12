@@ -125,7 +125,8 @@ body{
 .goal-card-flow{font-size:12px;color:var(--text-secondary);line-height:1.5;background:var(--bg-card-alt);padding:10px 12px;border-radius:8px;}
 .goal-card-flow b{color:var(--teal-deep);}
 :root[data-theme="dark"] .goal-card-flow b{color:var(--teal);}
-.goal-card-actions{display:flex;gap:8px;justify-content:flex-end;}
+.goal-card-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
+.goal-card-actions .btn{padding:8px 10px;}
 
 .empty-state{
   text-align:center;padding:70px 20px;background:var(--bg-card);border-radius:var(--radius);
@@ -211,6 +212,54 @@ body{
 .type-btn-title{font-weight:800;font-size:13px;color:var(--text-primary);}
 .type-btn-sub{font-size:10.5px;color:var(--text-secondary);line-height:1.4;}
 @media (max-width:640px){ .type-toggle{grid-template-columns:1fr;} }
+
+/* ---------- Dimension sub-view: cards vs monthly grid ---------- */
+.subview-tabs{display:flex;gap:4px;background:var(--bg-card-alt);padding:4px;border-radius:9px;margin:16px 0;width:fit-content;}
+.subtab-btn{padding:8px 14px;border-radius:6px;border:none;background:transparent;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;color:var(--text-secondary);cursor:pointer;}
+.subtab-btn.active{background:var(--bg-card);color:var(--text-primary);}
+
+.grid-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+.grid-month-label{font-weight:800;font-size:14px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;}
+
+.sheet-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);}
+.sheet-table{border-collapse:collapse;font-size:11px;}
+.sheet-table th,.sheet-table td{border:1px solid var(--border);padding:0;text-align:center;}
+.sheet-rowhead{
+  position:sticky;left:0;background:var(--bg-card);z-index:1;text-align:left !important;
+  padding:6px 10px !important;font-weight:700;font-size:11.5px;color:var(--text-primary);white-space:nowrap;
+  min-width:150px;max-width:200px;overflow:hidden;text-overflow:ellipsis;
+}
+.sheet-heat-row th, .sheet-heat-row td{height:8px;padding:0;border-left:none;border-right:none;}
+.sheet-heat-row th{position:sticky;left:0;background:var(--bg-card);z-index:1;border:none;}
+.sheet-pct-row th, .sheet-pct-row td{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--text-secondary);padding:3px 2px;min-width:32px;}
+.sheet-pct-row th{position:sticky;left:0;background:var(--bg-card);z-index:1;text-align:left !important;padding-left:10px !important;font-weight:700;}
+.sheet-date-row th, .sheet-date-row td{font-weight:700;font-size:10.5px;color:var(--text-secondary);padding:4px 2px;background:var(--bg-card-alt);}
+.sheet-date-row th{position:sticky;left:0;z-index:1;text-align:left !important;padding-left:10px !important;}
+.sheet-cell{width:30px;height:30px;min-width:30px;cursor:pointer;color:#fff;font-weight:700;font-size:13px;background:var(--bg-page);}
+.sheet-cell:hover{background:var(--bg-card-alt);}
+.sheet-cell.disabled{background:var(--bg-card);cursor:default;color:var(--border);font-weight:400;}
+.sheet-total{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;color:var(--text-primary);padding:0 8px !important;white-space:nowrap;}
+
+/* ---------- quick today checklist (all targets, one column) ---------- */
+.today-checklist-card{margin-bottom:26px;}
+.today-count{font-weight:600;color:var(--text-secondary);font-size:12px;}
+.today-list{display:flex;flex-direction:column;gap:8px;}
+.today-row{
+  display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:9px;
+  border:1.5px solid var(--border);background:var(--bg-page);cursor:pointer;
+}
+.today-row:hover{border-color:var(--gold-deep);}
+.today-row.done{opacity:0.6;}
+.today-row-check{
+  width:24px;height:24px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;
+}
+.today-row-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.today-row-info{flex:1;min-width:0;}
+.today-row-title{font-weight:700;font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.today-row.done .today-row-title{text-decoration:line-through;}
+.today-row-dim{font-size:10.5px;font-weight:700;margin-top:1px;}
+.today-row-target{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12.5px;color:var(--text-primary);flex-shrink:0;}
 
 /* ---------- Detail view ---------- */
 .detail-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
@@ -364,7 +413,7 @@ function dimColor(dim){ return state.theme==='dark' ? dim.colorDark : dim.color;
 
 let state = {
   goals: [], view: 'hub', activeGoalId: null, activeDimension: null, detailTab: 'ringkasan', modal: null, editingGoal: null,
-  theme: 'light', presetDimension: null
+  theme: 'light', presetDimension: null, statsRange: 'bulanan'
 };
 let saveGoalsTimer = null;
 
@@ -565,6 +614,7 @@ function render(){
   let body;
   if(state.view==='hub') body = renderHub();
   else if(state.view==='dimension') body = renderDimensionPage();
+  else if(state.view==='stats') body = renderStats();
   else body = renderDetail();
   app.innerHTML = renderHeader() + body;
   if(state.modal === 'goal') app.insertAdjacentHTML('beforeend', renderGoalModal());
@@ -575,11 +625,14 @@ function render(){
 function renderHeader(){
   let navBtns = '';
   if(state.view==='hub'){
-    navBtns = `<button class="btn btn-primary" data-action="new-goal">+ Target Baru</button>`;
+    navBtns = `<button class="btn btn-outline" data-action="go-stats">📊 Statistik</button>
+      <button class="btn btn-primary" data-action="new-goal">+ Target Baru</button>`;
   } else if(state.view==='dimension'){
     const dim = getDimension(state.activeDimension);
     navBtns = `<button class="btn btn-outline" data-action="go-hub">← Semua Dimensi</button>
       <button class="btn btn-primary" data-action="new-goal" data-presetdim="${dim.id}">+ Tambah Target</button>`;
+  } else if(state.view==='stats'){
+    navBtns = `<button class="btn btn-outline" data-action="go-hub">← Kembali</button>`;
   } else {
     navBtns = `<button class="btn btn-outline" data-action="back-to-dimension">← Kembali</button>`;
   }
@@ -636,12 +689,51 @@ function renderHub(){
   }).join('');
 
   return `
+  ${renderTodayChecklist()}
   <div class="hub-intro">
     <h2>8 Dimensi Kesejahteraan</h2>
     <p>Setiap target dikelompokkan ke salah satu dimensi supaya tidak tercampur. Pilih dimensi untuk melihat target di dalamnya.</p>
   </div>
   ${introEmpty}
   <div class="hub-grid">${cards}</div>`;
+}
+
+/* ---------------- quick "today" checklist across ALL targets, no need to open each card ---------------- */
+function renderTodayChecklist(){
+  const rows = [];
+  state.goals.forEach(g=>{
+    const cell = getTodayCell(g);
+    if(!cell) return;
+    const w = g.months[cell.mi].weeks[cell.wi];
+    const day = w.days[cell.di];
+    const dTarget = roundSensible(dayTarget(w), goalUnit(g));
+    rows.push({ g, cell, dim: getDimension(g.dimension), day, dTarget });
+  });
+  if(rows.length===0) return '';
+
+  rows.sort((a,b)=> (a.day.checked===b.day.checked) ? a.g.title.localeCompare(b.g.title) : (a.day.checked?1:-1));
+  const doneCount = rows.filter(r=>r.day.checked).length;
+
+  const itemsHtml = rows.map(r=>{
+    const c = dimColor(r.dim);
+    return `
+    <div class="today-row ${r.day.checked?'done':''}" data-action="toggle-day" data-id="${r.g.id}" data-mi="${r.cell.mi}" data-wi="${r.cell.wi}" data-di="${r.cell.di}">
+      <div class="today-row-check" style="${r.day.checked?`background:${c};border-color:${c};`:''}">${r.day.checked?'✓':''}</div>
+      <div class="today-row-icon" style="background:${c}">${r.g.icon}</div>
+      <div class="today-row-info">
+        <div class="today-row-title">${escapeHtml(r.g.title)}</div>
+        <div class="today-row-dim" style="color:${c}">${r.dim.icon} ${r.dim.label}</div>
+      </div>
+      <div class="today-row-target">${fmtNum(r.dTarget, goalUnit(r.g))}</div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card today-checklist-card">
+    <h4>✅ Ceklis Hari Ini <span class="today-count">(${doneCount}/${rows.length} selesai)</span></h4>
+    <p style="font-size:12px;color:var(--text-secondary);margin:-6px 0 14px;">Centang langsung di sini, tidak perlu buka satu-satu kartu target.</p>
+    <div class="today-list">${itemsHtml}</div>
+  </div>`;
 }
 
 /* ---------------- dimension page ---------------- */
@@ -666,8 +758,235 @@ function renderDimensionPage(){
       <button class="btn btn-primary" data-action="new-goal" data-presetdim="${dim.id}">+ Buat Target ${dim.label}</button>
     </div>`;
   }
-  return head + `<div class="goal-grid">${goals.map(renderGoalCard).join('')}</div>`;
+  const mode = state.dimensionViewMode || 'cards';
+  const subTabs = `
+  <div class="subview-tabs">
+    <button class="subtab-btn ${mode==='cards'?'active':''}" data-action="dim-mode" data-mode="cards">🗂 Kartu Target</button>
+    <button class="subtab-btn ${mode==='grid'?'active':''}" data-action="dim-mode" data-mode="grid">📊 Ceklis Bulanan</button>
+  </div>`;
+  const body = mode==='cards'
+    ? `<div class="goal-grid">${goals.map(renderGoalCard).join('')}</div>`
+    : renderMonthlyGrid(dim, goals);
+  return head + subTabs + body;
 }
+
+/* ---------------- monthly spreadsheet-style checklist ---------------- */
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+
+function getGoalCellForDate(g, dateObj){
+  const start = new Date(g.startDate+'T00:00:00');
+  const offset = Math.round((dateObj-start)/86400000);
+  const totalDays = g.months.length*28;
+  if(offset<0 || offset>=totalDays) return null;
+  const mi = Math.floor(offset/28), rem = offset%28, wi = Math.floor(rem/7), di = rem%7;
+  return { mi, wi, di };
+}
+
+function heatColor(pct){
+  if(pct===null || pct===undefined) return 'var(--bg-page)';
+  if(pct>=67) return 'var(--teal)';
+  if(pct>=34) return 'var(--gold)';
+  return 'var(--wine)';
+}
+
+function renderMonthlyGrid(dim, goals){
+  if(!state.gridMonth){ const now=new Date(); state.gridMonth={y:now.getFullYear(), m:now.getMonth()}; }
+  const { y, m } = state.gridMonth;
+  const dCount = daysInMonth(y,m);
+  const days = Array.from({length:dCount}, (_,i)=> new Date(y,m,i+1));
+  const c = dimColor(dim);
+
+  const dailyPct = days.map(d=>{
+    let planned=0, checked=0;
+    goals.forEach(g=>{
+      const cell = getGoalCellForDate(g,d);
+      if(cell){ planned++; if(g.months[cell.mi].weeks[cell.wi].days[cell.di].checked) checked++; }
+    });
+    return planned>0 ? Math.round(checked/planned*100) : null;
+  });
+
+  const rows = goals.map(g=>{
+    let plannedCount=0, checkedCount=0;
+    const cells = days.map(d=>{
+      const cell = getGoalCellForDate(g,d);
+      if(!cell){ return `<td class="sheet-cell disabled">·</td>`; }
+      plannedCount++;
+      const day = g.months[cell.mi].weeks[cell.wi].days[cell.di];
+      if(day.checked) checkedCount++;
+      return `<td class="sheet-cell ${day.checked?'checked':''}" style="${day.checked?`background:${c};border-color:${c};`:''}" data-action="toggle-day" data-id="${g.id}" data-mi="${cell.mi}" data-wi="${cell.wi}" data-di="${cell.di}" title="${fullDateStr(d)}">${day.checked?'✓':''}</td>`;
+    }).join('');
+    const monthPct = plannedCount>0 ? Math.round(checkedCount/plannedCount*100) : 0;
+    return `<tr><th class="sheet-rowhead">${g.icon} ${escapeHtml(truncate(g.title,26))}</th>${cells}<td class="sheet-total">${monthPct}%</td></tr>`;
+  }).join('');
+
+  const heatRow = `<tr class="sheet-heat-row"><th></th>${dailyPct.map(p=>`<td style="background:${heatColor(p)}"></td>`).join('')}<td></td></tr>`;
+  const pctRow = `<tr class="sheet-pct-row"><th>% Harian</th>${dailyPct.map(p=>`<td>${p===null?'–':p+'%'}</td>`).join('')}<td></td></tr>`;
+  const dateRow = `<tr class="sheet-date-row"><th>Tanggal</th>${days.map(d=>`<td>${d.getDate()}</td>`).join('')}<th>% Bulan</th></tr>`;
+
+  return `
+  <div class="grid-nav">
+    <button class="btn btn-outline btn-sm" data-action="grid-prev-month">← Sebelumnya</button>
+    <div class="grid-month-label">${MONTH_NAMES[m]} ${y}</div>
+    <button class="btn btn-outline btn-sm" data-action="grid-next-month">Berikutnya →</button>
+  </div>
+  <div class="sheet-scroll">
+    <table class="sheet-table">
+      <thead>${heatRow}${pctRow}${dateRow}</thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <div class="legend" style="margin-top:12px;">
+    <span><i style="background:var(--wine)"></i>&lt;34% habit tercapai hari itu</span>
+    <span><i style="background:var(--gold)"></i>34–66%</span>
+    <span><i style="background:var(--teal)"></i>&gt;66%</span>
+  </div>
+  <p style="font-size:11.5px;color:var(--text-secondary);margin-top:10px;">Sel abu-abu (·) berarti target itu belum mulai / sudah lewat masa rencananya di tanggal tersebut. Klik kotak untuk menandai selesai.</p>`;
+}
+
+/* ---------------- statistics page: progress per dimension ---------------- */
+function aggregateDimension(dim, granularity){
+  const goals = state.goals.filter(g=>getDimension(g.dimension).id===dim.id);
+  if(goals.length===0) return [];
+  let minDate=null, maxDate=null;
+  goals.forEach(g=>{
+    const start = new Date(g.startDate+'T00:00:00');
+    const end = new Date(start); end.setDate(end.getDate() + g.months.length*28 - 1);
+    if(!minDate || start<minDate) minDate=start;
+    if(!maxDate || end>maxDate) maxDate=end;
+  });
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  function dayStat(d){
+    let planned=0, checked=0;
+    goals.forEach(g=>{
+      const cell=getGoalCellForDate(g,d);
+      if(cell){ planned++; if(g.months[cell.mi].weeks[cell.wi].days[cell.di].checked) checked++; }
+    });
+    return planned>0 ? Math.round(checked/planned*100) : null;
+  }
+
+  if(granularity==='harian'){
+    const endDate = today < maxDate ? today : maxDate;
+    const startDate = new Date(endDate); startDate.setDate(startDate.getDate()-29);
+    const days=[];
+    for(let d=new Date(startDate); d<=endDate; d.setDate(d.getDate()+1)){ days.push(new Date(d)); }
+    return days.map(d=>({ label: d.getDate()+'/'+(d.getMonth()+1), pct: dayStat(d) }));
+  }
+
+  if(granularity==='pekanan'){
+    const wStart = new Date(minDate);
+    const dow = (wStart.getDay()+6)%7; // 0=Senin
+    wStart.setDate(wStart.getDate()-dow);
+    const weeks=[];
+    let cursor = new Date(wStart);
+    while(cursor<=maxDate){ weeks.push(new Date(cursor)); cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()+7); }
+    const recent = weeks.slice(-16);
+    return recent.map(ws=>{
+      let planned=0, checked=0;
+      for(let i=0;i<7;i++){
+        const d = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate()+i);
+        goals.forEach(g=>{
+          const cell=getGoalCellForDate(g,d);
+          if(cell){ planned++; if(g.months[cell.mi].weeks[cell.wi].days[cell.di].checked) checked++; }
+        });
+      }
+      return { label: ws.getDate()+'/'+(ws.getMonth()+1), pct: planned>0?Math.round(checked/planned*100):null };
+    });
+  }
+
+  if(granularity==='bulanan'){
+    const months=[];
+    let cursor = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    const last = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+    while(cursor<=last){ months.push(new Date(cursor)); cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1); }
+    const recent = months.slice(-12);
+    return recent.map(mDate=>{
+      const y=mDate.getFullYear(), m=mDate.getMonth();
+      const dCount = daysInMonth(y,m);
+      let planned=0, checked=0;
+      for(let day=1; day<=dCount; day++){
+        const d = new Date(y,m,day);
+        goals.forEach(g=>{
+          const cell=getGoalCellForDate(g,d);
+          if(cell){ planned++; if(g.months[cell.mi].weeks[cell.wi].days[cell.di].checked) checked++; }
+        });
+      }
+      return { label: MONTH_NAMES[m].slice(0,3)+' '+String(y).slice(2), pct: planned>0?Math.round(checked/planned*100):null };
+    });
+  }
+
+  // tahunan
+  const years=[];
+  for(let y=minDate.getFullYear(); y<=maxDate.getFullYear(); y++) years.push(y);
+  return years.map(y=>{
+    let planned=0, checked=0;
+    const yStart = new Date(y,0,1), yEnd=new Date(y,11,31);
+    for(let d=new Date(yStart); d<=yEnd; d.setDate(d.getDate()+1)){
+      goals.forEach(g=>{
+        const cell=getGoalCellForDate(g,d);
+        if(cell){ planned++; if(g.months[cell.mi].weeks[cell.wi].days[cell.di].checked) checked++; }
+      });
+    }
+    return { label: String(y), pct: planned>0?Math.round(checked/planned*100):null };
+  });
+}
+
+function renderStatChart(data, colorHex){
+  if(data.length===0) return `<p style="font-size:12px;color:var(--text-secondary);">Belum ada data.</p>`;
+  const W = Math.max(340, data.length*32), H=170, PAD=30;
+  const gap = (W-PAD*2)/data.length;
+  const barW = Math.max(4, gap*0.55);
+  const gridColor = state.theme==='dark' ? '#243654' : '#EBE1C8';
+  const textColor = state.theme==='dark' ? '#9BA6BF' : '#5B5F6B';
+  const emptyColor = state.theme==='dark' ? '#1E2C48' : '#EBE1C8';
+  const grid = [0,50,100].map(v=>{
+    const y = H-PAD-(v/100)*(H-PAD*2);
+    return `<line x1="${PAD}" y1="${y}" x2="${W-PAD}" y2="${y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="2 3"/><text x="2" y="${y+3}" font-size="8" fill="${textColor}" font-family="JetBrains Mono">${v}%</text>`;
+  }).join('');
+  const showEvery = Math.max(1, Math.ceil(data.length/8));
+  const bars = data.map((d,i)=>{
+    const x = PAD + i*gap + (gap-barW)/2;
+    const h = d.pct===null ? 2 : Math.max(2,(d.pct/100)*(H-PAD*2));
+    const y = H-PAD-h;
+    const fill = d.pct===null ? emptyColor : colorHex;
+    const label = (i%showEvery===0 || i===data.length-1)
+      ? `<text x="${(x+barW/2).toFixed(1)}" y="${H-8}" font-size="8.5" fill="${textColor}" text-anchor="middle" font-family="Montserrat">${d.label}</text>` : '';
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${fill}" rx="3"><title>${d.label}: ${d.pct===null?'tidak ada data':d.pct+'%'}</title></rect>${label}`;
+  }).join('');
+  return `<div style="overflow-x:auto;"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W,700)}px;">${grid}${bars}</svg></div>`;
+}
+
+function renderStats(){
+  if(state.goals.length===0){
+    return `<div class="hub-intro"><h2>📊 Statistik Progres</h2><p>Grafik progres per dimensi akan muncul di sini setelah kamu membuat target pertama.</p></div>`;
+  }
+  const range = state.statsRange || 'bulanan';
+  const rangeLabel = { harian:'30 hari terakhir', pekanan:'16 minggu terakhir', bulanan:'12 bulan terakhir', tahunan:'per tahun' }[range];
+  const rangeTabs = `
+  <div class="subview-tabs" style="margin:16px 0 20px;">
+    <button class="subtab-btn ${range==='harian'?'active':''}" data-action="stats-range" data-range="harian">Harian</button>
+    <button class="subtab-btn ${range==='pekanan'?'active':''}" data-action="stats-range" data-range="pekanan">Pekanan</button>
+    <button class="subtab-btn ${range==='bulanan'?'active':''}" data-action="stats-range" data-range="bulanan">Bulanan</button>
+    <button class="subtab-btn ${range==='tahunan'?'active':''}" data-action="stats-range" data-range="tahunan">Tahunan</button>
+  </div>`;
+  const dims = DIMENSIONS.filter(d=> state.goals.some(g=>getDimension(g.dimension).id===d.id));
+  const cards = dims.map(dim=>{
+    const c = dimColor(dim);
+    const data = aggregateDimension(dim, range);
+    const validVals = data.filter(d=>d.pct!==null).map(d=>d.pct);
+    const avg = validVals.length ? Math.round(validVals.reduce((a,b)=>a+b,0)/validVals.length) : 0;
+    return `
+    <div class="card stats-card">
+      <h4>${dim.icon} ${dim.label} <span style="font-weight:700;color:${c};font-size:12.5px;">rata-rata ${avg}%</span></h4>
+      ${renderStatChart(data, c)}
+    </div>`;
+  }).join('');
+  return `
+  <div class="hub-intro"><h2>📊 Statistik Progres</h2><p>Pilih rentang waktu, lalu bandingkan progres antar dimensi (${rangeLabel}).</p></div>
+  ${rangeTabs}
+  ${cards}`;
+}
+
 function renderGoalCard(g){
   const dim = getDimension(g.dimension);
   const c = dimColor(dim);
@@ -706,6 +1025,7 @@ function renderGoalCard(g){
     <div class="goal-card-flow">→ <b>${escapeHtml(truncate(g.kondisiDiinginkan,60))}</b></div>
     <div class="goal-card-actions">
       <button class="btn btn-ghost btn-sm" data-action="edit-goal" data-id="${g.id}" title="Edit">✎ Edit</button>
+      <button class="btn btn-ghost btn-sm" data-action="duplicate-goal" data-id="${g.id}" title="Duplikat">⧉ Duplikat</button>
       <button class="btn btn-ghost btn-sm" data-action="delete-goal" data-id="${g.id}" title="Hapus">🗑 Hapus</button>
     </div>
   </div>`;
@@ -733,6 +1053,7 @@ function renderDetail(){
       </div>
     </div>
     <button class="btn btn-outline btn-sm" data-action="edit-goal" data-id="${g.id}">✎ Edit Target</button>
+    <button class="btn btn-outline btn-sm" data-action="duplicate-goal" data-id="${g.id}">⧉ Duplikat</button>
     <button class="btn btn-danger btn-sm" data-action="delete-goal" data-id="${g.id}">🗑 Hapus</button>
   </div>
   <div class="tabs">
@@ -1089,6 +1410,21 @@ function attachEvents(){
   app.querySelectorAll('[data-action="back-to-dimension"]').forEach(el=>el.addEventListener('click',()=>{
     state.view = state.activeDimension ? 'dimension' : 'hub'; render();
   }));
+  app.querySelectorAll('[data-action="go-stats"]').forEach(el=>el.addEventListener('click',()=>{
+    state.view='stats'; render();
+  }));
+  app.querySelectorAll('[data-action="stats-range"]').forEach(el=>el.addEventListener('click',()=>{
+    state.statsRange = el.getAttribute('data-range'); render();
+  }));
+  app.querySelectorAll('[data-action="dim-mode"]').forEach(el=>el.addEventListener('click',()=>{
+    state.dimensionViewMode = el.getAttribute('data-mode'); render();
+  }));
+  app.querySelectorAll('[data-action="grid-prev-month"]').forEach(el=>el.addEventListener('click',()=>{
+    let {y,m} = state.gridMonth; m--; if(m<0){ m=11; y--; } state.gridMonth={y,m}; render();
+  }));
+  app.querySelectorAll('[data-action="grid-next-month"]').forEach(el=>el.addEventListener('click',()=>{
+    let {y,m} = state.gridMonth; m++; if(m>11){ m=0; y++; } state.gridMonth={y,m}; render();
+  }));
   app.querySelectorAll('[data-action="toggle-theme"]').forEach(el=>el.addEventListener('click', toggleTheme));
 
   app.querySelectorAll('[data-action="new-goal"]').forEach(el=>el.addEventListener('click',()=>{
@@ -1099,6 +1435,10 @@ function attachEvents(){
   app.querySelectorAll('[data-action="edit-goal"]').forEach(el=>el.addEventListener('click',(e)=>{
     e.stopPropagation();
     state.editingGoal = getGoal(el.getAttribute('data-id')); state.modal='goal'; render();
+  }));
+  app.querySelectorAll('[data-action="duplicate-goal"]').forEach(el=>el.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    duplicateGoal(el.getAttribute('data-id'));
   }));
   app.querySelectorAll('[data-action="delete-goal"]').forEach(el=>el.addEventListener('click',(e)=>{
     e.stopPropagation();
@@ -1201,6 +1541,22 @@ function attachEvents(){
       saveGoals(); render();
     });
   });
+}
+
+function duplicateGoal(id){
+  const src = getGoal(id);
+  if(!src) return;
+  const clone = JSON.parse(JSON.stringify(src));
+  clone.id = uid();
+  clone.title = src.title + ' (Salinan)';
+  clone.months = buildDefaultMonths(clone.currentValue, clone.targetValue, clone.durationMonths||clone.months.length, clone.goalType||'akumulasi', clone.dailyTarget||0);
+  clone._openMonth = null; clone._selMonth = 0;
+  state.goals.push(clone);
+  saveGoals();
+  showToast('Target diduplikat — sunting namanya jika perlu');
+  state.editingGoal = clone;
+  state.modal = 'goal';
+  render();
 }
 
 function saveGoalFromForm(existingId){
