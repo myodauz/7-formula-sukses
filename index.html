@@ -94,6 +94,8 @@ body{
 .btn-sm{padding:8px 12px;font-size:12.5px;}
 .btn-danger{background:transparent;color:var(--wine);border:1.5px solid var(--wine);}
 .btn-danger:hover{background:var(--wine);color:#fff;}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-teal:hover{background:var(--teal-deep);}
 
 /* ---------- Dashboard grid ---------- */
 .goal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
@@ -156,6 +158,12 @@ body{
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:6px;letter-spacing:0.2px;}
 .field .hint{font-size:11px;color:var(--text-secondary);margin-top:5px;line-height:1.5;}
+.help-box{background:var(--bg-card-alt);border-radius:9px;padding:14px 16px;font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;}
+.help-box b{color:var(--text-primary);}
+.help-box code{background:var(--bg-page);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.checkbox-row{display:flex;align-items:center;gap:9px;}
+.checkbox-row input{width:16px;height:16px;}
+.checkbox-row label{margin:0;font-size:13px;font-weight:600;color:var(--text-primary);}
 .field input[type=text], .field input[type=number], .field input[type=date], .field input[type=time], .field input[type=password], .field textarea, .field select{
   width:100%;padding:11px 13px;border-radius:8px;border:1.5px solid var(--border);
   font-family:'Montserrat',sans-serif;font-size:13.5px;color:var(--text-primary);background:var(--bg-page);
@@ -378,6 +386,7 @@ body{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
   background:var(--text-primary);color:var(--bg-page);padding:12px 20px;border-radius:9px;font-size:13px;font-weight:600;
   box-shadow:0 10px 30px rgba(0,0,0,0.3);opacity:0;pointer-events:none;transition:all .25s;z-index:200;
+  max-width:min(92vw,420px);text-align:center;line-height:1.5;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
@@ -413,9 +422,10 @@ function dimColor(dim){ return state.theme==='dark' ? dim.colorDark : dim.color;
 
 let state = {
   goals: [], view: 'hub', activeGoalId: null, activeDimension: null, detailTab: 'ringkasan', modal: null, editingGoal: null,
-  theme: 'light', presetDimension: null, statsRange: 'bulanan'
+  theme: 'light', presetDimension: null, statsRange: 'bulanan',
+  telegram: { botToken:'', chatId:'' }
 };
-let saveGoalsTimer = null;
+let saveGoalsTimer = null, saveTelegramTimer = null, reminderInterval = null;
 
 /* ---------------- storage (works inside claude.ai artifacts AND as a standalone downloaded file) ---------------- */
 async function storageGet(key){
@@ -446,8 +456,13 @@ async function loadAll(){
     const tv = await storageGet('formulaSukses_theme');
     if(tv) state.theme = tv;
   }catch(e){ /* keep default */ }
+  try{
+    const tg = await storageGet('formulaSukses_telegram');
+    if(tg) state.telegram = Object.assign(state.telegram, JSON.parse(tg));
+  }catch(e){ /* keep default */ }
   document.documentElement.setAttribute('data-theme', state.theme);
   render();
+  startReminderClock();
 }
 function saveGoals(){
   clearTimeout(saveGoalsTimer);
@@ -459,11 +474,18 @@ function saveGoals(){
 async function saveTheme(){
   await storageSet('formulaSukses_theme', state.theme);
 }
+function saveTelegramSettings(){
+  clearTimeout(saveTelegramTimer);
+  saveTelegramTimer = setTimeout(async ()=>{
+    await storageSet('formulaSukses_telegram', JSON.stringify(state.telegram));
+  }, 200);
+}
 
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2400);
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(()=>t.classList.remove('show'), Math.min(6000, 2400 + msg.length*30));
 }
 
 /* ---------------- theme ---------------- */
@@ -619,6 +641,7 @@ function render(){
   app.innerHTML = renderHeader() + body;
   if(state.modal === 'goal') app.insertAdjacentHTML('beforeend', renderGoalModal());
   if(state.modal === 'delete-confirm') app.insertAdjacentHTML('beforeend', renderDeleteModal());
+  if(state.modal === 'telegram-settings') app.insertAdjacentHTML('beforeend', renderTelegramSettingsModal());
   attachEvents();
 }
 
@@ -649,6 +672,7 @@ function renderHeader(){
     </div>
     <div class="header-actions">
       <button class="btn-icon" data-action="toggle-theme" title="Ganti tema">${state.theme==='dark'?'☀️':'🌙'}</button>
+      <button class="btn-icon" data-action="open-telegram-settings" title="Pengaturan Reminder Telegram">🔔</button>
       ${navBtns}
     </div>
   </div>`;
@@ -956,6 +980,68 @@ function renderStatChart(data, colorHex){
   return `<div style="overflow-x:auto;"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="min-width:${Math.min(W,700)}px;">${grid}${bars}</svg></div>`;
 }
 
+/* ---------------- Telegram per-target reminder ---------------- */
+async function sendTelegramMessage(text){
+  const { botToken, chatId } = state.telegram;
+  if(!botToken || !chatId){ showToast('Isi Bot Token & Chat ID dulu di Pengaturan'); return false; }
+  try{
+    // GET request with query params (a "simple" request, no CORS preflight) —
+    // Telegram's API frequently blocks the preflight that a POST+JSON body triggers from a browser.
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`
+      + `?chat_id=${encodeURIComponent(chatId)}`
+      + `&text=${encodeURIComponent(text)}`
+      + `&parse_mode=HTML`;
+    const res = await fetch(url, { method:'GET' });
+    let data;
+    try{ data = await res.json(); }
+    catch(parseErr){ showToast('Gagal kirim: respons Telegram tidak terbaca (kemungkinan diblokir browser/CORS)'); return false; }
+    if(data.ok){ showToast('Reminder terkirim ke Telegram ✅'); return true; }
+    showToast('Gagal kirim: ' + (data.description || 'periksa Bot Token & Chat ID'));
+    return false;
+  }catch(e){
+    showToast('Gagal kirim: request diblokir. Pastikan sudah kirim 1 pesan ke bot di Telegram, dan Token/Chat ID benar.');
+    return false;
+  }
+}
+function escapeForTelegram(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function composeGoalReminder(g){
+  const dim = getDimension(g.dimension);
+  const cell = getTodayCell(g);
+  const today = new Date().toLocaleDateString('id-ID',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  let lines = [`⏰ <b>Pengingat: ${escapeForTelegram(g.title)}</b>`, `${dim.icon} ${dim.label} · ${today}`, ''];
+  if(cell){
+    const w = g.months[cell.mi].weeks[cell.wi];
+    const dt = roundSensible(dayTarget(w), goalUnit(g));
+    lines.push(`Target hari ini: <b>${fmtNum(dt, goalUnit(g))}</b>`);
+  } else {
+    lines.push('Saatnya melakukan aktivitas ini hari ini.');
+  }
+  lines.push('', 'Yuk kerjakan sekarang, lalu centang di aplikasi 💪');
+  return lines.join('\n');
+}
+
+function startReminderClock(){
+  if(reminderInterval) clearInterval(reminderInterval);
+  reminderInterval = setInterval(checkGoalReminders, 20000);
+  checkGoalReminders();
+}
+async function checkGoalReminders(){
+  if(!state.telegram.botToken || !state.telegram.chatId) return;
+  const now = new Date();
+  const hhmm = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const todayStr = now.toISOString().slice(0,10);
+  let changed = false;
+  for(const g of state.goals){
+    if(!g.reminderEnabled || !g.reminderTime) continue;
+    if(g.reminderTime === hhmm && g._lastReminderDate !== todayStr){
+      const ok = await sendTelegramMessage(composeGoalReminder(g));
+      if(ok){ g._lastReminderDate = todayStr; changed = true; }
+    }
+  }
+  if(changed) saveGoals();
+}
+
 function renderStats(){
   if(state.goals.length===0){
     return `<div class="hub-intro"><h2>📊 Statistik Progres</h2><p>Grafik progres per dimensi akan muncul di sini setelah kamu membuat target pertama.</p></div>`;
@@ -1023,6 +1109,7 @@ function renderGoalCard(g){
       </div>
     </div>
     <div class="goal-card-flow">→ <b>${escapeHtml(truncate(g.kondisiDiinginkan,60))}</b></div>
+    ${g.reminderEnabled ? `<div style="font-size:11px;color:var(--text-secondary);">🔔 Reminder jam ${g.reminderTime}</div>` : ''}
     <div class="goal-card-actions">
       <button class="btn btn-ghost btn-sm" data-action="edit-goal" data-id="${g.id}" title="Edit">✎ Edit</button>
       <button class="btn btn-ghost btn-sm" data-action="duplicate-goal" data-id="${g.id}" title="Duplikat">⧉ Duplikat</button>
@@ -1266,7 +1353,7 @@ function renderDayCell(g,d,mi,wi,di,dTarget,unit,todayCell){
 /* ---------------- goal modal ---------------- */
 function renderGoalModal(){
   const editing = state.editingGoal;
-  const g = editing || { icon:'🎯', unit:'Rp', unitCustom:'', title:'', kondisiSekarang:'', kondisiDiinginkan:'', how:'', currentValue:0, targetValue:0, dailyTarget:0, goalType:'akumulasi', startDate: new Date().toISOString().slice(0,10), durationMonths:12, dimension: state.presetDimension };
+  const g = editing || { icon:'🎯', unit:'Rp', unitCustom:'', title:'', kondisiSekarang:'', kondisiDiinginkan:'', how:'', currentValue:0, targetValue:0, dailyTarget:0, goalType:'akumulasi', startDate: new Date().toISOString().slice(0,10), durationMonths:12, dimension: state.presetDimension, reminderEnabled:false, reminderTime:'07:00' };
   const dur = g.durationMonths || 12;
   const presetDur = [3,6,9,12,18,24];
   const isPreset = presetDur.includes(dur);
@@ -1365,6 +1452,17 @@ function renderGoalModal(){
           <input type="date" id="f-start" value="${g.startDate}">
           <div class="hint">Rencana dibuat untuk durasi di atas, dihitung sejak tanggal ini.</div>
         </div>
+        <div class="field">
+          <label>⏰ Reminder Telegram</label>
+          <div class="checkbox-row" style="margin-bottom:${g.reminderEnabled?'10px':'0'};">
+            <input type="checkbox" id="f-reminder-enabled" ${g.reminderEnabled?'checked':''}>
+            <label for="f-reminder-enabled">Aktifkan reminder untuk target ini</label>
+          </div>
+          <div id="f-reminder-time-wrap" style="${g.reminderEnabled?'':'display:none;'}">
+            <input type="time" id="f-reminder-time" value="${g.reminderTime||'07:00'}">
+            <div class="hint">Jam berapa aktivitas ini biasanya dilakukan — reminder dikirim ke Telegram sekali setiap hari pada jam ini (selama tab aplikasi terbuka). Atur Bot Token &amp; Chat ID lewat tombol 🔔 di header.</div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" data-action="close-modal">Batal</button>
@@ -1383,6 +1481,45 @@ function renderDeleteModal(){
       <div class="modal-footer">
         <button class="btn btn-outline" data-action="close-modal">Batal</button>
         <button class="btn btn-danger" data-action="confirm-delete">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTelegramSettingsModal(){
+  const s = state.telegram;
+  return `
+  <div class="overlay" data-action="close-modal">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🔔 Pengaturan Reminder Telegram</h3>
+        <button class="btn btn-ghost" data-action="close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-box">
+          <b>Cara mendapatkan Bot Token &amp; Chat ID:</b><br>
+          1. Chat <code>@BotFather</code> di Telegram → <code>/newbot</code> → salin token yang diberikan.<br>
+          2. Kirim pesan apa saja ke bot barumu, lalu buka
+          <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> di browser untuk melihat <code>chat.id</code> milikmu.<br>
+          3. Tempel keduanya di bawah ini.
+        </div>
+        <div class="field">
+          <label>Bot Token</label>
+          <input type="text" id="tg-token" value="${escapeAttr(s.botToken)}" placeholder="123456:ABC-DEF...">
+        </div>
+        <div class="field">
+          <label>Chat ID</label>
+          <input type="text" id="tg-chatid" value="${escapeAttr(s.chatId)}" placeholder="123456789">
+        </div>
+        <div class="hint">
+          ⚠️ Token &amp; Chat ID ini hanya tersimpan di browser perangkatmu (tidak ikut ter-upload ke GitHub). Aktifkan reminder di masing-masing target lewat tombol Edit Target → bagian "⏰ Reminder".<br><br>
+          ⚠️ Reminder hanya terkirim saat tab/halaman ini terbuka di browser — bukan notifikasi push server.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-action="close-modal">Tutup</button>
+        <button class="btn btn-teal" data-action="test-telegram">📤 Kirim Tes</button>
+        <button class="btn btn-primary" data-action="save-telegram-settings">Simpan</button>
       </div>
     </div>
   </div>`;
@@ -1415,6 +1552,20 @@ function attachEvents(){
   }));
   app.querySelectorAll('[data-action="stats-range"]').forEach(el=>el.addEventListener('click',()=>{
     state.statsRange = el.getAttribute('data-range'); render();
+  }));
+  app.querySelectorAll('[data-action="open-telegram-settings"]').forEach(el=>el.addEventListener('click',()=>{
+    state.modal='telegram-settings'; render();
+  }));
+  app.querySelectorAll('[data-action="save-telegram-settings"]').forEach(el=>el.addEventListener('click',()=>{
+    state.telegram.botToken = document.getElementById('tg-token').value.trim();
+    state.telegram.chatId = document.getElementById('tg-chatid').value.trim();
+    saveTelegramSettings();
+    state.modal=null; showToast('Pengaturan Telegram disimpan'); render();
+  }));
+  app.querySelectorAll('[data-action="test-telegram"]').forEach(el=>el.addEventListener('click',()=>{
+    state.telegram.botToken = document.getElementById('tg-token').value.trim();
+    state.telegram.chatId = document.getElementById('tg-chatid').value.trim();
+    sendTelegramMessage('👋 Tes reminder dari Formula Sukses berhasil tersambung!');
   }));
   app.querySelectorAll('[data-action="dim-mode"]').forEach(el=>el.addEventListener('click',()=>{
     state.dimensionViewMode = el.getAttribute('data-mode'); render();
@@ -1470,6 +1621,12 @@ function attachEvents(){
   if(durSel){
     durSel.addEventListener('change', ()=>{
       document.getElementById('f-duration-custom-wrap').style.display = durSel.value==='custom' ? '' : 'none';
+    });
+  }
+  const remChk = document.getElementById('f-reminder-enabled');
+  if(remChk){
+    remChk.addEventListener('change', ()=>{
+      document.getElementById('f-reminder-time-wrap').style.display = remChk.checked ? '' : 'none';
     });
   }
   app.querySelectorAll('#type-toggle .type-btn').forEach(el=>el.addEventListener('click',()=>{
@@ -1550,7 +1707,7 @@ function duplicateGoal(id){
   clone.id = uid();
   clone.title = src.title + ' (Salinan)';
   clone.months = buildDefaultMonths(clone.currentValue, clone.targetValue, clone.durationMonths||clone.months.length, clone.goalType||'akumulasi', clone.dailyTarget||0);
-  clone._openMonth = null; clone._selMonth = 0;
+  clone._openMonth = null; clone._selMonth = 0; clone._lastReminderDate = null;
   state.goals.push(clone);
   saveGoals();
   showToast('Target diduplikat — sunting namanya jika perlu');
@@ -1589,17 +1746,20 @@ function saveGoalFromForm(existingId){
     targetValue = parseIDNumber(document.getElementById('f-target').value);
   }
 
+  const reminderEnabled = document.getElementById('f-reminder-enabled').checked;
+  const reminderTime = document.getElementById('f-reminder-time').value || '07:00';
+
   if(existingId){
     const g = getGoal(existingId);
     const valueChanged = g.currentValue!==currentValue || g.targetValue!==targetValue
       || (g.durationMonths||12)!==durationMonths || (g.goalType||'akumulasi')!==goalType || (g.dailyTarget||0)!==dailyTarget;
-    Object.assign(g, { title, icon, dimension, unit, unitCustom, currentValue, targetValue, dailyTarget, goalType, startDate, kondisiSekarang, kondisiDiinginkan, how, durationMonths });
+    Object.assign(g, { title, icon, dimension, unit, unitCustom, currentValue, targetValue, dailyTarget, goalType, startDate, kondisiSekarang, kondisiDiinginkan, how, durationMonths, reminderEnabled, reminderTime });
     if(valueChanged){ g.months = buildDefaultMonths(currentValue,targetValue,durationMonths,goalType,dailyTarget); showToast('Target diperbarui — rencana bulanan di-reset ulang'); }
     else{ showToast('Target diperbarui'); }
   } else {
     const g = {
       id: uid(), title, icon, dimension, unit, unitCustom, currentValue, targetValue, dailyTarget, goalType, startDate, durationMonths,
-      kondisiSekarang, kondisiDiinginkan, how,
+      kondisiSekarang, kondisiDiinginkan, how, reminderEnabled, reminderTime, _lastReminderDate: null,
       months: buildDefaultMonths(currentValue,targetValue,durationMonths,goalType,dailyTarget),
       _openMonth: null, _selMonth: 0
     };
